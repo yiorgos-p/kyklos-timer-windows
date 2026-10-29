@@ -82,7 +82,8 @@ public sealed class TimerViewModel : INotifyPropertyChanged
         {
             if (Set(ref field, value))
             {
-                Notify(nameof(DisplayTime), nameof(DialFraction), nameof(StatusCaption), nameof(NextPhase), nameof(TrayTitle));
+                Notify(nameof(DisplayTime), nameof(DialFraction), nameof(StatusCaption), nameof(TrayTitle),
+                    nameof(NextPhase), nameof(PrimaryActionTitle), nameof(ResetActionTitle));
             }
         }
     }
@@ -94,7 +95,7 @@ public sealed class TimerViewModel : INotifyPropertyChanged
         {
             if (Set(ref field, value))
             {
-                Notify(nameof(NextPhase));
+                Notify(nameof(NextPhase), nameof(PrimaryActionTitle));
             }
         }
     }
@@ -132,7 +133,7 @@ public sealed class TimerViewModel : INotifyPropertyChanged
         {
             if (Set(ref field, value))
             {
-                Notify(nameof(NextPhase));
+                Notify(nameof(NextPhase), nameof(PrimaryActionTitle));
             }
         }
     }
@@ -217,6 +218,18 @@ public sealed class TimerViewModel : INotifyPropertyChanged
             return title;
         }
     }
+
+    /// <summary>What the main button does now. Once time's up it starts the next phase, and says which.</summary>
+    public string PrimaryActionTitle => State switch
+    {
+        TimerState.Running => "Pause",
+        TimerState.Paused => "Resume",
+        TimerState.Finished => "Start " + NextPhase.Title.ToLowerInvariant(),
+        _ => "Start",
+    };
+
+    /// <summary>The second button. While time's up it stops the alarm and moves on to the next phase.</summary>
+    public string ResetActionTitle => State == TimerState.Finished ? "Stop" : "Reset";
 
     // Controls
 
@@ -331,7 +344,7 @@ public sealed class TimerViewModel : INotifyPropertyChanged
                 break;
 
             case nameof(Settings.SessionsPerLongBreak):
-                Notify(nameof(NextPhase));
+                Notify(nameof(NextPhase), nameof(PrimaryActionTitle));
                 break;
         }
     }

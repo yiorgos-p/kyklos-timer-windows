@@ -1,0 +1,186 @@
+<UserControl
+    x:Class="Kyklos.Views.TimerView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:views="using:Kyklos.Views"
+    VerticalAlignment="Top">
+
+    <UserControl.Resources>
+        <Style x:Key="FilledDotStyle" TargetType="Ellipse">
+            <Setter Property="Width" Value="7" />
+            <Setter Property="Height" Value="7" />
+            <Setter Property="Fill" Value="{ThemeResource DotFilledBrush}" />
+        </Style>
+        <Style x:Key="EmptyDotStyle" TargetType="Ellipse">
+            <Setter Property="Width" Value="7" />
+            <Setter Property="Height" Value="7" />
+            <Setter Property="Fill" Value="{ThemeResource DotEmptyBrush}" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid
+        x:Name="Root"
+        Padding="18,6,18,18"
+        Background="Transparent"
+        PreviewKeyDown="OnPreviewKeyDown"
+        RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--  The phase switcher, or in Zen mode while the timer runs just the phase, in the same space so nothing jumps.  -->
+        <Grid>
+            <views:PhaseSwitcher
+                x:Name="PhaseSwitcher"
+                HorizontalAlignment="Stretch"
+                AutomationProperties.Name="Phase"
+                SelectionChanged="OnPhaseSelected">
+                <views:PhaseSwitcher.OpacityTransition>
+                    <ScalarTransition Duration="0:0:0.25" />
+                </views:PhaseSwitcher.OpacityTransition>
+                <views:PhaseItem Content="Focus" />
+                <views:PhaseItem Content="Short break" />
+                <views:PhaseItem Content="Long break" />
+            </views:PhaseSwitcher>
+
+            <StackPanel
+                x:Name="ZenLabel"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsHitTestVisible="False"
+                Opacity="0"
+                Orientation="Horizontal"
+                Spacing="6">
+                <StackPanel.OpacityTransition>
+                    <ScalarTransition Duration="0:0:0.25" />
+                </StackPanel.OpacityTransition>
+                <Viewbox
+                    x:Name="ZenIcon"
+                    Width="16"
+                    Height="16" />
+                <TextBlock x:Name="ZenTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
+            </StackPanel>
+        </Grid>
+
+        <views:DialControl
+            x:Name="Dial"
+            Grid.Row="1"
+            HorizontalAlignment="Center" />
+
+        <StackPanel
+            Grid.Row="2"
+            Height="18"
+            HorizontalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="6">
+            <StackPanel
+                x:Name="Sessions"
+                Background="Transparent"
+                Orientation="Horizontal"
+                Spacing="6">
+                <StackPanel.ContextFlyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem
+                            x:Name="ResetSessionsItem"
+                            Click="OnResetSessions"
+                            Text="Reset today's sessions" />
+                    </MenuFlyout>
+                </StackPanel.ContextFlyout>
+                <StackPanel
+                    x:Name="Dots"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="4" />
+                <TextBlock
+                    x:Name="TodayLabel"
+                    VerticalAlignment="Center"
+                    FontSize="11"
+                    FontWeight="SemiBold"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Typography.NumeralAlignment="Tabular" />
+            </StackPanel>
+            <Button
+                x:Name="ResetSessionsButton"
+                Width="18"
+                Height="18"
+                Padding="0"
+                AutomationProperties.Name="Reset today's sessions"
+                Click="OnResetSessions"
+                Style="{StaticResource SubtleButtonStyle}"
+                ToolTipService.ToolTip="Reset today's sessions">
+                <FontIcon
+                    FontSize="10"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Glyph="&#xE7A7;" />
+            </Button>
+        </StackPanel>
+
+        <TextBox
+            x:Name="TaskBox"
+            Grid.Row="3"
+            AutomationProperties.Name="Current task"
+            KeyDown="OnTaskKeyDown"
+            PlaceholderText="What are you working on?"
+            TextAlignment="Center"
+            TextChanged="OnTaskChanged" />
+
+        <Grid
+            x:Name="Buttons"
+            Grid.Row="4"
+            ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="StartColumn" Width="*" />
+                <ColumnDefinition x:Name="ResetColumn" Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!--  Clicking a button leaves the focus on the dial, as on the Mac, so Space goes on starting and pausing.
+                  The keyboard still reaches them with Tab.  -->
+            <Button
+                x:Name="StartButton"
+                Height="36"
+                HorizontalAlignment="Stretch"
+                AllowFocusOnInteraction="False"
+                Click="OnStartClicked"
+                Style="{StaticResource AccentButtonStyle}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Viewbox
+                        x:Name="StartIcon"
+                        Width="14"
+                        Height="14" />
+                    <TextBlock x:Name="StartLabel" />
+                </StackPanel>
+            </Button>
+
+            <Button
+                x:Name="ResetButton"
+                Grid.Column="1"
+                Height="36"
+                HorizontalAlignment="Stretch"
+                AllowFocusOnInteraction="False"
+                Click="OnResetClicked">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon x:Name="ResetIcon" FontSize="14" />
+                    <TextBlock x:Name="ResetLabel" />
+                </StackPanel>
+            </Button>
+
+            <Button
+                x:Name="SettingsButton"
+                Grid.Column="2"
+                Width="36"
+                Height="36"
+                Padding="0"
+                AllowFocusOnInteraction="False"
+                AutomationProperties.Name="Open kyklos settings"
+                Click="OnSettingsClicked"
+                ToolTipService.ToolTip="Open kyklos settings">
+                <FontIcon FontSize="16" Glyph="&#xE713;" />
+            </Button>
+        </Grid>
+    </Grid>
+</UserControl>

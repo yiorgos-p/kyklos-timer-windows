@@ -14,4 +14,8 @@ public static class SessionDots
         var remainder = completed % perCycle;
         return remainder == 0 ? perCycle : remainder;
     }
+
+    /// <summary>The dots' tooltip, like "3 focus sessions finished today. A long break comes after every 4."</summary>
+    public static string Description(int completed, int perCycle) =>
+        $"{completed} focus session{(completed == 1 ? "" : "s")} finished today. A long break comes after every {perCycle}.";
 }

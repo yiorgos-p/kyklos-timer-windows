@@ -65,6 +65,34 @@ public class TextTests
     }
 
     [Fact]
+    public void TheButtonsFollowTheState()
+    {
+        using var test = new TestTimer();
+        Assert.Equal(("Start", "Reset"), (test.Timer.PrimaryActionTitle, test.Timer.ResetActionTitle));
+
+        test.Timer.StartTimer();
+        Assert.Equal("Pause", test.Timer.PrimaryActionTitle);
+
+        test.Timer.PauseTimer();
+        Assert.Equal("Resume", test.Timer.PrimaryActionTitle);
+
+        test.Timer.ResumeTimer();
+        test.Advance(25 * 60);
+        Assert.Equal(("Start short break", "Stop"), (test.Timer.PrimaryActionTitle, test.Timer.ResetActionTitle));
+
+        test.Timer.ToggleTimer();
+        test.Advance(5 * 60);
+        Assert.Equal("Start focus", test.Timer.PrimaryActionTitle);
+    }
+
+    [Fact]
+    public void TheDotsExplainTheRhythm()
+    {
+        Assert.Equal("1 focus session finished today. A long break comes after every 4.", SessionDots.Description(1, 4));
+        Assert.Equal("3 focus sessions finished today. A long break comes after every 4.", SessionDots.Description(3, 4));
+    }
+
+    [Fact]
     public void TheTrayShowsOnlyTheTimeWhileStopped()
     {
         using var test = new TestTimer();

@@ -1,0 +1,61 @@
+<UserControl
+    x:Class="Kyklos.Views.WindowTitleBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Height="32">
+
+    <!--  Icon, name and the pin, with room on the right for Windows' own caption buttons.  -->
+    <Grid>
+        <!--  The title fades while the window is inactive, as Windows' own title bars do.  -->
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="ActivationStates">
+                <VisualState x:Name="Active" />
+                <VisualState x:Name="Inactive">
+                    <VisualState.Setters>
+                        <Setter Target="TitleText.Foreground" Value="{ThemeResource TitleBarDeactivatedForegroundBrush}" />
+                        <Setter Target="Icon.Opacity" Value="{ThemeResource TitleBarDeactivatedOpacity}" />
+                        <Setter Target="PinButton.Opacity" Value="{ThemeResource TitleBarDeactivatedOpacity}" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="LeftInsetColumn" Width="0" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition x:Name="RightInsetColumn" Width="0" />
+        </Grid.ColumnDefinitions>
+
+        <Image
+            x:Name="Icon"
+            Grid.Column="1"
+            Width="16"
+            Height="16"
+            Margin="16,0,0,0"
+            VerticalAlignment="Center" />
+        <TextBlock
+            x:Name="TitleText"
+            Grid.Column="2"
+            Margin="12,0,0,0"
+            VerticalAlignment="Center"
+            Foreground="{ThemeResource TitleBarForegroundBrush}"
+            Style="{StaticResource CaptionTextBlockStyle}"
+            Text="kyklos" />
+
+        <!--  Doesn't take the focus when clicked, so Space keeps starting the timer.  -->
+        <ToggleButton
+            x:Name="PinButton"
+            Grid.Column="4"
+            Width="40"
+            Height="28"
+            Margin="0,0,2,0"
+            AllowFocusOnInteraction="False"
+            AutomationProperties.Name="Keep on top"
+            Style="{StaticResource SubtleToggleButtonStyle}">
+            <FontIcon x:Name="PinIcon" FontSize="14" />
+        </ToggleButton>
+    </Grid>
+</UserControl>

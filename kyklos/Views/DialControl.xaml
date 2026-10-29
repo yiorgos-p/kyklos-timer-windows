@@ -1,0 +1,154 @@
+<UserControl
+    x:Class="Kyklos.Views.DialControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Width="220"
+    Height="220"
+    FocusVisualMargin="-2"
+    IsTabStop="True"
+    UseSystemFocusVisuals="True">
+
+    <Grid
+        x:Name="Face"
+        Background="Transparent"
+        PointerCanceled="OnFaceReleased"
+        PointerCaptureLost="OnFaceCaptureLost"
+        PointerExited="OnFaceExited"
+        PointerMoved="OnFaceMoved"
+        PointerPressed="OnFacePressed"
+        PointerReleased="OnFaceReleased"
+        PointerWheelChanged="OnFaceWheelChanged">
+
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="TimeStates">
+                <VisualState x:Name="Ready" />
+                <VisualState x:Name="Paused">
+                    <VisualState.Setters>
+                        <Setter Target="Arc.Opacity" Value="0.5" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="TimesUp">
+                    <VisualState.Setters>
+                        <Setter Target="Arc.Stroke" Value="{ThemeResource OvertimeBrush}" />
+                        <Setter Target="TimeText.Foreground" Value="{ThemeResource OvertimeBrush}" />
+                        <Setter Target="CaptionText.Foreground" Value="{ThemeResource OvertimeBrush}" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <Path
+            x:Name="Ticks"
+            IsHitTestVisible="False"
+            Stroke="{ThemeResource DialTicksBrush}"
+            StrokeEndLineCap="Round"
+            StrokeStartLineCap="Round"
+            StrokeThickness="1.5" />
+        <Ellipse
+            Width="188"
+            Height="188"
+            IsHitTestVisible="False"
+            Stroke="{ThemeResource DialTrackBrush}"
+            StrokeThickness="10" />
+        <Path
+            x:Name="Arc"
+            IsHitTestVisible="False"
+            StrokeEndLineCap="Round"
+            StrokeStartLineCap="Round"
+            StrokeThickness="10" />
+
+        <!--  The ring is the drag handle; the middle is left free for clicking the time.  -->
+        <Path
+            x:Name="RingArea"
+            Fill="Transparent"
+            ToolTipService.ToolTip="Drag the ring to set the time" />
+
+        <!--  Drawn like the WinUI slider thumb, which is how Windows draws a handle to drag.  -->
+        <Border
+            x:Name="Knob"
+            Width="28"
+            Height="28"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Background="{ThemeResource ControlSolidFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource ControlElevationBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="14"
+            PointerEntered="OnKnobEntered"
+            PointerExited="OnKnobExited"
+            Translation="0,0,8">
+            <Border.Shadow>
+                <ThemeShadow />
+            </Border.Shadow>
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="KnobPosition" />
+            </Border.RenderTransform>
+            <Ellipse
+                x:Name="KnobDot"
+                Width="16"
+                Height="16"
+                CenterPoint="8,8,0">
+                <Ellipse.ScaleTransition>
+                    <Vector3Transition Duration="0:0:0.083" />
+                </Ellipse.ScaleTransition>
+            </Ellipse>
+        </Border>
+
+        <StackPanel
+            x:Name="Readout"
+            MaxWidth="148"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Spacing="0">
+            <!--  A long overtime like +125:03 shrinks rather than being cut off.  -->
+            <Viewbox MaxWidth="148" StretchDirection="DownOnly">
+                <TextBlock
+                    x:Name="TimeText"
+                    FontFamily="Segoe UI Variable Display"
+                    FontSize="42"
+                    FontWeight="SemiBold"
+                    Tapped="OnTimeTapped"
+                    Typography.NumeralAlignment="Tabular" />
+            </Viewbox>
+            <TextBlock
+                x:Name="CaptionText"
+                HorizontalAlignment="Center"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                IsHitTestVisible="False"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                Typography.NumeralAlignment="Tabular" />
+        </StackPanel>
+
+        <StackPanel
+            x:Name="Editor"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Spacing="2"
+            Visibility="Collapsed">
+            <TextBox
+                x:Name="MinutesBox"
+                Width="96"
+                AutomationProperties.Name="Minutes"
+                BeforeTextChanging="OnMinutesTextChanging"
+                FontFamily="Segoe UI Variable Display"
+                FontSize="40"
+                FontWeight="SemiBold"
+                InputScope="Number"
+                KeyDown="OnMinutesKeyDown"
+                LostFocus="OnMinutesLostFocus"
+                MaxLength="2"
+                TextAlignment="Center" />
+            <TextBlock
+                HorizontalAlignment="Center"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                Text="minutes" />
+        </StackPanel>
+
+        <!--  Mouse mode: the whole dial takes clicks and drags.  -->
+        <Rectangle
+            x:Name="MouseArea"
+            Fill="Transparent"
+            Visibility="Collapsed" />
+    </Grid>
+</UserControl>

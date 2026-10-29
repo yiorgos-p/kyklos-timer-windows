@@ -1,0 +1,13 @@
+DefSubclassProc
+GetDoubleClickTime
+GetDpiForWindow
+GetSystemMetrics
+PostMessage
+RemoveWindowSubclass
+SetCurrentProcessExplicitAppUserModelID
+SetWindowSubclass
+SC_MAXIMIZE
+SC_RESTORE
+SIZE_MAXIMIZED
+WM_SIZE
+WM_SYSCOMMAND

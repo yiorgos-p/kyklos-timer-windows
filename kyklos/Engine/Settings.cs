@@ -107,10 +107,53 @@ public sealed class Settings : INotifyPropertyChanged
         set => Set("customAlarmFile", value);
     }
 
+    /// <summary>"Controls: Mouse": click the dial to start or pause, triple-click it to reset.</summary>
+    public bool UseMouseControls
+    {
+        get => GetBool("useMouseControls") ?? false;
+        set => Set("useMouseControls", value);
+    }
+
+    /// <summary>Hides the phase switcher while the timer runs.</summary>
+    public bool ZenMode
+    {
+        get => GetBool("zenMode") ?? false;
+        set => Set("zenMode", value);
+    }
+
+    public bool KeepWindowOnTop
+    {
+        get => GetBool("keepWindowOnTop") ?? false;
+        set => Set("keepWindowOnTop", value);
+    }
+
+    public AppTheme Appearance
+    {
+        get => GetString("appearance") switch
+        {
+            "light" => AppTheme.Light,
+            "dark" => AppTheme.Dark,
+            _ => AppTheme.System,
+        };
+        set => Set("appearance", value switch
+        {
+            AppTheme.Light => "light",
+            AppTheme.Dark => "dark",
+            _ => "system",
+        });
+    }
+
     public string CurrentTask
     {
         get => GetString("currentTask") ?? "";
         set => Set("currentTask", value);
+    }
+
+    /// <summary>Where the main window was left, in screen pixels.</summary>
+    public WindowPosition? MainWindowPos
+    {
+        get => GetPosition("mainWindowPos");
+        set => SetPosition("mainWindowPos", value);
     }
 
     /// <summary>The preset length of a phase.</summary>
@@ -135,6 +178,16 @@ public sealed class Settings : INotifyPropertyChanged
 
     private string? GetString(string key) =>
         _values[key] is JsonValue value && value.TryGetValue(out string? text) ? text : null;
+
+    private WindowPosition? GetPosition(string key) =>
+        _values[key] is JsonObject point
+        && point["x"] is JsonValue x && x.TryGetValue(out int left)
+        && point["y"] is JsonValue y && y.TryGetValue(out int top)
+            ? new WindowPosition(left, top)
+            : null;
+
+    private void SetPosition(string key, WindowPosition? position, [CallerMemberName] string property = "") =>
+        Set(key, position is { } point ? new JsonObject { ["x"] = point.X, ["y"] = point.Y } : null, property);
 
     private void Set(string key, JsonNode? value, [CallerMemberName] string property = "")
     {
