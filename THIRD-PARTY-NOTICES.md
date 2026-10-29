@@ -5,7 +5,7 @@ the components below, each under its own licence.
 
 | Component | What kyklos uses it for | Licence |
 |---|---|---|
-| [.NET](https://github.com/dotnet/runtime) | the runtime kyklos runs on | MIT, © .NET Foundation and Contributors; its own third-party notices are in `licenses/.NET third-party notices.txt` |
+| [.NET](https://github.com/dotnet/runtime) | the runtime kyklos runs on | MIT, © .NET Foundation and Contributors; its own third-party notices are in `licenses/dotnet third-party notices.txt` |
 | [Windows App SDK](https://github.com/microsoft/WindowsAppSDK) (WinUI 3) | windows, controls, notifications | Microsoft Software License Terms, in `licenses/Windows App SDK license.txt` |
 | Windows SDK for .NET (Microsoft.Windows.SDK.NET, WinRT.Runtime) | calling Windows from C# | Microsoft Windows SDK license terms: https://aka.ms/WinSDKLicenseURL |
 | [Windows Community Toolkit](https://github.com/CommunityToolkit/Windows) | the phase switcher and the settings cards | MIT, © .NET Foundation and Contributors |

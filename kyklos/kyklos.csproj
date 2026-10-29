@@ -31,13 +31,21 @@
     <SelfContained>true</SelfContained>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
+    <!-- Builds kyklos.pri, which holds the windows' compiled layouts; without it, `dotnet publish` leaves them out and the
+         first window can't open. -->
+    <EnableMsixTooling>true</EnableMsixTooling>
   </PropertyGroup>
 
-  <!-- A release leaves out the parts of .NET and the Windows SDK that kyklos doesn't use, which halves the download, and
-       its debugging symbols. -->
+  <!-- A release is a single kyklos.exe that runs from anywhere, like a portable app: .NET and the Windows App SDK are
+       packed inside it, and it unpacks them into the temp folder the first time it starts. It leaves out the parts of
+       .NET that kyklos doesn't use, which halves the download, and its debugging symbols. -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>partial</TrimMode>
+    <!-- Trimming turns off .NET's own COM support, which the taskbar progress (ITaskbarList3) goes through. -->
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <DebugType>none</DebugType>
   </PropertyGroup>
 
@@ -54,10 +62,22 @@
   <ItemGroup>
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Sounds\**" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\licenses\**" Link="licenses\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The licences go next to kyklos.exe, where people can read them, rather than inside it. -->
+    <Content Include="..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+    <Content Include="..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+    <Content Include="..\licenses\**" Link="licenses\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
   </ItemGroup>
+
+  <!-- kyklos is in English only, so WinUI's own words (a text box's Cut, Copy and Paste, what a screen reader calls a
+       scroll bar) stay in English too, as AppKit's do on the Mac for an app in one language. That leaves out the 85
+       other languages WinUI comes with; on a PC set to one of them, WinUI falls back to English. -->
+  <Target Name="LeaveOutOtherLanguages" AfterTargets="ComputeResolvedFilesToPublishList">
+    <!-- The folders are named in either case (en-us), and MSBuild compares strings without it. -->
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="'%(Extension)' == '.mui' and '$([System.IO.Path]::GetDirectoryName(%(RelativePath)))' != 'en-US'" />
+    </ItemGroup>
+  </Target>
 
   <!-- kyklos uses none of the Windows App SDK's AI, machine learning, search, widget or DWriteCore parts, and as a
        self-contained app it doesn't need the framework installer either. Left in, they'd add about 60 MB to the zip. -->

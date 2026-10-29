@@ -57,12 +57,16 @@ kyklos needs Windows 11. It's made and tested on Windows 11 on an x64 PC; report
 1. Download `kyklos-windows-x64.zip` from the [latest release](../../releases/latest), or `kyklos-windows-arm64.zip` if
    your PC has an Arm processor (Settings → System → About says which, under System type). Right-click the zip and
    choose Extract All.
-2. Move the `kyklos` folder somewhere it can stay, open it, and run `kyklos.exe`.
+2. `kyklos.exe` is the whole app, so it can live anywhere: move it to a folder of your choice and run it. The first time,
+   it takes a moment longer while it unpacks itself into your temp folder.
 3. Windows will say "Windows protected your PC", because the app isn't signed (that takes a paid certificate). Click
    **More info**, then **Run anyway**.
 
 You only need to do this once. To find kyklos again, right-click `kyklos.exe` and choose Pin to Start, or turn on Start
 with Windows in its settings.
+
+kyklos keeps its settings in `%LOCALAPPDATA%\kyklos`. To remove it completely, turn off Start with Windows, quit it,
+and delete `kyklos.exe`, that folder and `%TEMP%\.net\kyklos`.
 
 ## Build from source
 
@@ -78,8 +82,8 @@ To build a release, as in the zips (use `win-arm64` for Arm):
 dotnet publish kyklos -c Release -r win-x64
 ```
 
-The app ends up in `kyklos/bin/Release/net10.0-windows10.0.26100.0/win-x64/publish`. The timer's tests run with
-`dotnet test --project kyklos.Tests/kyklos.Tests.csproj`.
+The app ends up in `kyklos/bin/Release/net10.0-windows10.0.26100.0/win-x64/publish`: `kyklos.exe`, with its licences
+beside it. The timer's tests run with `dotnet test --project kyklos.Tests/kyklos.Tests.csproj`.
 
 ## Dependencies
 
