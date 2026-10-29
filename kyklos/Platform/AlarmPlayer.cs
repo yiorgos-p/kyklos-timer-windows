@@ -13,6 +13,8 @@ public sealed class AlarmPlayer(DispatcherQueue queue) : IAlarmPlayer
 {
     private MediaPlayer? _player;
 
+    public event Action? Ended;
+
     public void Play(IReadOnlyList<string> files)
     {
         Stop();
@@ -49,6 +51,7 @@ public sealed class AlarmPlayer(DispatcherQueue queue) : IAlarmPlayer
     {
         if (index >= files.Count)
         {
+            Ended?.Invoke();
             return;
         }
 
@@ -75,6 +78,7 @@ public sealed class AlarmPlayer(DispatcherQueue queue) : IAlarmPlayer
             if (sender == _player)
             {
                 Stop();
+                Ended?.Invoke();
             }
         });
 

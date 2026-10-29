@@ -23,6 +23,21 @@ internal static class WindowChrome
     }
 
     /// <summary>
+    /// For a window that's always exactly as big as its content: Windows still draws a maximise button over an extended
+    /// title bar, so its command is refused; and should something maximise the window another way (UI Automation invokes
+    /// that button directly), it's put straight back. Dispose of the result when the window closes.
+    /// </summary>
+    public static WindowMessages RefuseMaximize(nint window) => new(window, (message, wParam, _) =>
+    {
+        if (message == PInvoke.WM_SIZE && wParam == PInvoke.SIZE_MAXIMIZED)
+        {
+            PInvoke.PostMessage(new HWND(window), PInvoke.WM_SYSCOMMAND, PInvoke.SC_RESTORE, 0);
+        }
+
+        return message == PInvoke.WM_SYSCOMMAND && (wParam & 0xFFF0) == PInvoke.SC_MAXIMIZE;
+    });
+
+    /// <summary>
     /// Sizes a window's client area, in pixels. AppWindow.ResizeClient adds a standard title bar's height, but kyklos's
     /// windows have none (the main window draws its own in the content; the flyout and mini timer hide it), so the
     /// window is sized from its actual frame instead.

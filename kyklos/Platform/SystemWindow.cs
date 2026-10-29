@@ -7,8 +7,8 @@ namespace Kyklos.Platform;
 
 /// <summary>
 /// An invisible window that lives as long as kyklos does, for the Windows messages that never reach a XAML window: the
-/// tray icon's clicks, and what the system broadcasts to top-level windows, like a change of taskbar theme. (A
-/// message-only window would miss the broadcasts.)
+/// tray icon's clicks, the global shortcut, and what the system broadcasts to top-level windows, like a change of
+/// taskbar theme. (A message-only window would miss the broadcasts.)
 /// </summary>
 internal sealed class SystemWindow : IDisposable
 {

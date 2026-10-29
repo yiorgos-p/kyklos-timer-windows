@@ -16,6 +16,12 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\kyklos.ico</ApplicationIcon>
 
+    <!-- About shows "Version 1.0 (Build 1)", as the Mac's does: the version, and the build in the file version's last
+         place. -->
+    <Version>1.0</Version>
+    <FileVersion>1.0.0.1</FileVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+
     <!-- A plain folder rather than an MSIX package, carrying its own .NET and Windows App SDK, so the zip from GitHub
          runs on any Windows 11 PC. -->
     <WindowsPackageType>None</WindowsPackageType>
@@ -27,6 +33,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.WinUI.Controls.Segmented" Version="8.2.251219" />
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
     <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.367">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

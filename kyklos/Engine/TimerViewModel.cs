@@ -52,6 +52,7 @@ public sealed class TimerViewModel : INotifyPropertyChanged
         LoadTodaysSessions();
 
         settings.PropertyChanged += OnSettingChanged;
+        alarm.Ended += () => IsAlarmPlaying = false;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -496,9 +497,20 @@ public sealed class TimerViewModel : INotifyPropertyChanged
 
     // Alarm
 
-    public void PlayAlarmSound() => _alarm.Play(AlarmSounds.Candidates(_settings));
+    /// <summary>Whether the alarm sound is playing, so Settings can offer to stop it.</summary>
+    public bool IsAlarmPlaying { get; private set => Set(ref field, value); }
 
-    public void StopAlarmSound() => _alarm.Stop();
+    public void PlayAlarmSound()
+    {
+        IsAlarmPlaying = true;
+        _alarm.Play(AlarmSounds.Candidates(_settings));
+    }
+
+    public void StopAlarmSound()
+    {
+        _alarm.Stop();
+        IsAlarmPlaying = false;
+    }
 
     /// <summary>Rings again at each full minute of overtime, for the first few minutes, unless turned off in Settings.</summary>
     private void RepeatAlarmIfDue()

@@ -34,6 +34,14 @@
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
+    <!--  A small header over a group of settings cards, as in Windows' own Settings.  -->
+    <Style
+        x:Key="SettingsSectionHeaderStyle"
+        BasedOn="{StaticResource BodyStrongTextBlockStyle}"
+        TargetType="TextBlock">
+        <Setter Property="Margin" Value="1,20,0,4" />
+    </Style>
+
     <!--  A toggle that looks like a title bar button: no fill until hovered, and checked shows only in its icon.  -->
     <Style x:Key="SubtleToggleButtonStyle" TargetType="ToggleButton">
         <Setter Property="Background" Value="{ThemeResource SubtleFillColorTransparentBrush}" />

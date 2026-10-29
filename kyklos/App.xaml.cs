@@ -29,9 +29,11 @@ public partial class App : Application
     private Notifier _notifier = null!;
     private SystemWindow _system = null!;
     private TrayIcon _tray = null!;
+    private GlobalHotKey _hotKey = null!;
     private MainWindow? _mainWindow;
     private TrayFlyout? _flyout;
     private MiniTimer? _miniTimer;
+    private SettingsWindow? _settingsWindow;
     private long _flyoutClosedAt;
     private bool _updatePending;
 
@@ -60,6 +62,10 @@ public partial class App : Application
         _tray = new TrayIcon(_system);
         _tray.Selected += ToggleFlyout;
         _tray.MenuRequested += ShowTrayMenu;
+
+        // From any app, the same as the main button.
+        _hotKey = new GlobalHotKey(_system, _settings);
+        _hotKey.Pressed += _timer.ToggleTimer;
         _timer.PropertyChanged += (_, _) => ScheduleUpdate(queue);
         _settings.PropertyChanged += OnSettingChanged;
         UpdateTray();
@@ -175,6 +181,20 @@ public partial class App : Application
 
     private void ShowSettings()
     {
+        if (_settingsWindow is null)
+        {
+            var window = new SettingsWindow(_timer, _settings, _hotKey);
+            window.Closed += (_, _) =>
+            {
+                if (_settingsWindow == window)
+                {
+                    _settingsWindow = null;
+                }
+            };
+            _settingsWindow = window;
+        }
+
+        _settingsWindow.BringToFront();
     }
 
     /// <summary>
@@ -221,10 +241,12 @@ public partial class App : Application
         // The last keys typed aren't lost, and a notification left on screen launches kyklos again.
         _timer.SaveTask();
         _notifier.Unregister();
+        _hotKey.Dispose();
         _tray.Dispose();
         _system.Dispose();
         _flyout?.Close();
         CloseMiniTimer();
+        _settingsWindow?.Close();
         _mainWindow?.Close();
         Exit();
     }

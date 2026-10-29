@@ -14,14 +14,17 @@ GetCursorPos
 GetDoubleClickTime
 GetDpiForSystem
 GetDpiForWindow
+GetKeyNameText
 GetModuleHandle
 GetSystemMetrics
 GetSystemMetricsForDpi
 GetWindowLong
 ITaskbarList3
 LoadImage
+MapVirtualKey
 PostMessage
 RegisterClassEx
+RegisterHotKey
 RegisterWindowMessage
 RemoveWindowSubclass
 SetCurrentProcessExplicitAppUserModelID
@@ -31,6 +34,7 @@ SetWindowSubclass
 Shell_NotifyIcon
 Shell_NotifyIconGetRect
 TaskbarList
+UnregisterHotKey
 SC_MAXIMIZE
 SC_RESTORE
 SIZE_MAXIMIZED
@@ -38,6 +42,7 @@ MINMAXINFO
 WM_APP
 WM_CONTEXTMENU
 WM_GETMINMAXINFO
+WM_HOTKEY
 WM_SETTINGCHANGE
 WM_SIZE
 WM_SYSCOMMAND

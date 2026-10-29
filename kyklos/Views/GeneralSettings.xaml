@@ -1,0 +1,128 @@
+<UserControl
+    x:Class="Kyklos.Views.GeneralSettings"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls">
+
+    <StackPanel Spacing="4">
+        <!--  Windows lets people turn an app's notifications off; then "time's up" can only ring, so say so.  -->
+        <InfoBar
+            x:Name="NotificationsOff"
+            Title="Notifications are off"
+            Margin="0,12,0,0"
+            IsClosable="False"
+            Visibility="Collapsed"
+            Message="You won't get a &quot;Time's up&quot; notification. Turn on notifications for kyklos in Windows Settings."
+            Severity="Warning">
+            <InfoBar.ActionButton>
+                <Button Click="OnOpenNotificationSettings" Content="Open Settings" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+
+        <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="Timer" />
+        <toolkit:SettingsCard Description="When time's up, ring again every minute until you start the next phase or stop, for up to 10 minutes." Header="Repeat alarm">
+            <ToggleSwitch
+                x:Name="RepeatAlarm"
+                AutomationProperties.Name="Repeat alarm"
+                Toggled="OnRepeatAlarmToggled" />
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Alarm sound">
+            <toolkit:SettingsCard.Description>
+                <TextBlock
+                    x:Name="AlarmMessage"
+                    Foreground="{ThemeResource OvertimeBrush}"
+                    TextWrapping="WrapWholeWords"
+                    Visibility="Collapsed" />
+            </toolkit:SettingsCard.Description>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <ComboBox
+                    x:Name="AlarmSound"
+                    MinWidth="160"
+                    AutomationProperties.Name="Alarm sound"
+                    SelectionChanged="OnAlarmSoundSelected" />
+                <Button
+                    x:Name="PlayButton"
+                    MinWidth="72"
+                    Click="OnPlayClicked" />
+            </StackPanel>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Description="With Mouse, click the dial to start or pause and triple-click it to reset." Header="Controls">
+            <ComboBox
+                x:Name="ControlsChoice"
+                AutomationProperties.Name="Controls"
+                SelectionChanged="OnControlsSelected">
+                <ComboBoxItem Content="Buttons" />
+                <ComboBoxItem Content="Mouse" />
+            </ComboBox>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Description="Hide the phase switcher while the timer runs." Header="Zen mode">
+            <ToggleSwitch
+                x:Name="ZenMode"
+                AutomationProperties.Name="Zen mode"
+                Toggled="OnZenModeToggled" />
+        </toolkit:SettingsCard>
+
+        <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="Window" />
+        <toolkit:SettingsCard Description="A small timer that floats above other apps. Double-click it for the full window." Header="Minimal mode">
+            <ComboBox
+                x:Name="MinimalModeChoice"
+                AutomationProperties.Name="Minimal mode"
+                SelectionChanged="OnMinimalModeSelected">
+                <ComboBoxItem Content="Off" />
+                <ComboBoxItem Content="On start" />
+                <ComboBoxItem Content="Always" />
+            </ComboBox>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="App theme">
+            <ComboBox
+                x:Name="ThemeChoice"
+                AutomationProperties.Name="App theme"
+                SelectionChanged="OnThemeSelected">
+                <ComboBoxItem Content="Use system setting" />
+                <ComboBoxItem Content="Light" />
+                <ComboBoxItem Content="Dark" />
+            </ComboBox>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Description="When off, kyklos lives in the system tray and its window." Header="Show in taskbar">
+            <ToggleSwitch
+                x:Name="ShowInTaskbar"
+                AutomationProperties.Name="Show in taskbar"
+                Toggled="OnShowInTaskbarToggled" />
+        </toolkit:SettingsCard>
+
+        <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="System" />
+        <toolkit:SettingsCard Header="Start with Windows">
+            <ToggleSwitch
+                x:Name="StartWithWindowsSwitch"
+                AutomationProperties.Name="Start with Windows"
+                Toggled="OnStartWithWindowsToggled" />
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Global shortcut">
+            <toolkit:SettingsCard.Description>
+                <StackPanel>
+                    <TextBlock Text="Start, pause, or resume from any app. Click the shortcut to change it." TextWrapping="WrapWholeWords" />
+                    <TextBlock
+                        x:Name="ShortcutMessage"
+                        Foreground="{ThemeResource OvertimeBrush}"
+                        TextWrapping="WrapWholeWords"
+                        Visibility="Collapsed" />
+                </StackPanel>
+            </toolkit:SettingsCard.Description>
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <!--  While it records, the button keeps every key it's given to itself.  -->
+                <Button
+                    x:Name="ShortcutButton"
+                    MinWidth="120"
+                    Click="OnShortcutClicked"
+                    LostFocus="OnShortcutLostFocus"
+                    PreviewKeyDown="OnShortcutKeyDown"
+                    PreviewKeyUp="OnShortcutKeyUp"
+                    ToolTipService.ToolTip="Click, then press the new shortcut. Esc cancels." />
+                <ToggleSwitch
+                    x:Name="ShortcutEnabled"
+                    AutomationProperties.Name="Global shortcut"
+                    Toggled="OnShortcutEnabledToggled" />
+            </StackPanel>
+        </toolkit:SettingsCard>
+    </StackPanel>
+</UserControl>

@@ -10,4 +10,7 @@ public interface IAlarmPlayer
 
     /// <summary>How long a sound file plays, or null if it can't be played.</summary>
     Task<TimeSpan?> MeasureAsync(string file);
+
+    /// <summary>The sound played to its end, or none of the files would play.</summary>
+    event Action? Ended;
 }

@@ -1,0 +1,86 @@
+<UserControl
+    x:Class="Kyklos.Views.TimerSettings"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls">
+
+    <UserControl.Resources>
+        <!--  Out of range is clamped, never refused.  -->
+        <Style x:Key="MinutesBoxStyle" TargetType="NumberBox">
+            <Setter Property="MinWidth" Value="96" />
+            <Setter Property="SmallChange" Value="1" />
+            <Setter Property="LargeChange" Value="5" />
+            <Setter Property="SpinButtonPlacementMode" Value="Inline" />
+            <Setter Property="ValidationMode" Value="InvalidInputOverwritten" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel Spacing="4">
+        <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="Durations" />
+        <toolkit:SettingsCard Header="Focus">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <NumberBox
+                    x:Name="FocusMinutes"
+                    AutomationProperties.Name="Focus, in minutes"
+                    Maximum="60"
+                    Minimum="1"
+                    Style="{StaticResource MinutesBoxStyle}"
+                    ValueChanged="OnMinutesChanged" />
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="min" />
+            </StackPanel>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Short break">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <NumberBox
+                    x:Name="ShortBreakMinutes"
+                    AutomationProperties.Name="Short break, in minutes"
+                    Maximum="30"
+                    Minimum="1"
+                    Style="{StaticResource MinutesBoxStyle}"
+                    ValueChanged="OnMinutesChanged" />
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="min" />
+            </StackPanel>
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard Header="Long break">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <NumberBox
+                    x:Name="LongBreakMinutes"
+                    AutomationProperties.Name="Long break, in minutes"
+                    Maximum="60"
+                    Minimum="1"
+                    Style="{StaticResource MinutesBoxStyle}"
+                    ValueChanged="OnMinutesChanged" />
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="min" />
+            </StackPanel>
+        </toolkit:SettingsCard>
+
+        <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="Rhythm" />
+        <toolkit:SettingsCard Description="One dot per focus session. Once they're all filled, the next break is a long one." Header="Sessions before a long break">
+            <NumberBox
+                x:Name="SessionsPerLongBreak"
+                AutomationProperties.Name="Sessions before a long break"
+                Maximum="8"
+                Minimum="2"
+                Style="{StaticResource MinutesBoxStyle}"
+                ValueChanged="OnSessionsChanged" />
+        </toolkit:SettingsCard>
+        <toolkit:SettingsCard
+            x:Name="FinishedToday"
+            Description="Starts again from zero each day. The ↺ next to the dots resets it too."
+            Header="Finished today">
+            <Button
+                x:Name="ResetToday"
+                Click="OnResetToday"
+                Content="Reset" />
+        </toolkit:SettingsCard>
+    </StackPanel>
+</UserControl>

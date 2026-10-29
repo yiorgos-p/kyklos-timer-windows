@@ -166,6 +166,28 @@ public sealed class Settings : INotifyPropertyChanged
         });
     }
 
+    public bool GlobalShortcutEnabled
+    {
+        get => GetBool("globalShortcutEnabled") ?? true;
+        set => Set("globalShortcutEnabled", value);
+    }
+
+    /// <summary>The global shortcut, kept as a virtual-key code and RegisterHotKey's modifier flags.</summary>
+    public GlobalShortcut GlobalShortcut
+    {
+        get => GetInt("globalShortcutKeyCode") is { } key && GetInt("globalShortcutModifiers") is { } modifiers
+            && new GlobalShortcut(key, (ShortcutModifiers)modifiers) is { IsValid: true } shortcut
+                ? shortcut
+                : GlobalShortcut.Default;
+
+        // Both at once, so nothing ever sees the new key with the old modifiers.
+        set => Set(
+        [
+            ("globalShortcutKeyCode", value.Key),
+            ("globalShortcutModifiers", (int)value.Modifiers),
+        ]);
+    }
+
     public string CurrentTask
     {
         get => GetString("currentTask") ?? "";
@@ -219,14 +241,27 @@ public sealed class Settings : INotifyPropertyChanged
     private void SetPosition(string key, WindowPosition? position, [CallerMemberName] string property = "") =>
         Set(key, position is { } point ? new JsonObject { ["x"] = point.X, ["y"] = point.Y } : null, property);
 
-    private void Set(string key, JsonNode? value, [CallerMemberName] string property = "")
+    private void Set(string key, JsonNode? value, [CallerMemberName] string property = "") => Set([(key, value)], property);
+
+    /// <summary>Writes these values, saves and reports once, and only if something really changed.</summary>
+    private void Set((string Key, JsonNode? Value)[] values, [CallerMemberName] string property = "")
     {
-        if (JsonNode.DeepEquals(_values[key], value))
+        var changed = false;
+
+        foreach (var (key, value) in values)
+        {
+            if (!JsonNode.DeepEquals(_values[key], value))
+            {
+                _values[key] = value;
+                changed = true;
+            }
+        }
+
+        if (!changed)
         {
             return;
         }
 
-        _values[key] = value;
         Save();
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
     }

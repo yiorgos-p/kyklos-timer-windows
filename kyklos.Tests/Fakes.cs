@@ -95,6 +95,11 @@ sealed class FakeAlarm : IAlarmPlayer
 
     public Task<TimeSpan?> MeasureAsync(string file) =>
         Task.FromResult(Lengths.TryGetValue(file, out var length) ? length : (TimeSpan?)null);
+
+    public event Action? Ended;
+
+    /// <summary>The sound comes to its end.</summary>
+    public void End() => Ended?.Invoke();
 }
 
 sealed class FakeNotifier : INotifier
