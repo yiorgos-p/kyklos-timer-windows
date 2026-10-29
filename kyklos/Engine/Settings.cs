@@ -1,0 +1,192 @@
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+namespace Kyklos.Engine;
+
+/// <summary>
+/// kyklos's settings, kept under the Mac app's UserDefaults names in settings.json. As with UserDefaults, a value that's
+/// missing or unreadable reads as its default, so a file from an older version keeps working.
+/// </summary>
+public sealed class Settings : INotifyPropertyChanged
+{
+    public const int MinimumSessionsPerLongBreak = 2;
+    public const int MaximumSessionsPerLongBreak = 8;
+
+    private const string FileName = "settings.json";
+
+    private static readonly JsonWriterOptions WriterOptions = new()
+    {
+        Indented = true,
+        // Keep a task typed in Greek or any other script readable in the file rather than as \u escapes.
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
+    private readonly JsonObject _values;
+
+    public Settings(string folder)
+    {
+        Folder = folder;
+        _values = Read(Path.Combine(folder, FileName));
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>%LOCALAPPDATA%\kyklos, where kyklos keeps its settings.</summary>
+    public static string DefaultFolder =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "kyklos");
+
+    /// <summary>The folder the settings are saved in. A custom alarm sound is copied in next to them.</summary>
+    public string Folder { get; }
+
+    public int StandardTimer
+    {
+        get => GetMinutes("standardTimer", TimerPhase.Focus);
+        set => SetMinutes("standardTimer", TimerPhase.Focus, value);
+    }
+
+    public int ShortBreak
+    {
+        get => GetMinutes("shortBreak", TimerPhase.ShortBreak);
+        set => SetMinutes("shortBreak", TimerPhase.ShortBreak, value);
+    }
+
+    public int LongBreak
+    {
+        get => GetMinutes("longBreak", TimerPhase.LongBreak);
+        set => SetMinutes("longBreak", TimerPhase.LongBreak, value);
+    }
+
+    /// <summary>A long break comes after every this many focus sessions, shown as the dots under the dial.</summary>
+    public int SessionsPerLongBreak
+    {
+        get => Math.Clamp(GetInt("sessionsPerLongBreak") ?? 4, MinimumSessionsPerLongBreak, MaximumSessionsPerLongBreak);
+        set => Set("sessionsPerLongBreak", Math.Clamp(value, MinimumSessionsPerLongBreak, MaximumSessionsPerLongBreak));
+    }
+
+    /// <summary>Focus sessions finished on <see cref="SessionsDay"/>.</summary>
+    public int SessionsToday
+    {
+        get => Math.Max(0, GetInt("sessionsToday") ?? 0);
+        set => Set("sessionsToday", value);
+    }
+
+    /// <summary>The day <see cref="SessionsToday"/> counts, like "2026-10-29".</summary>
+    public string SessionsDay
+    {
+        get => GetString("sessionsDay") ?? "";
+        set => Set("sessionsDay", value);
+    }
+
+    public bool RepeatAlarm
+    {
+        get => GetBool("repeatAlarm") ?? true;
+        set => Set("repeatAlarm", value);
+    }
+
+    /// <summary>A built-in sound's name, or <see cref="AlarmSounds.Custom"/> for a file the user picked.</summary>
+    public string AlarmSound
+    {
+        get => GetString("alarmSound") ?? AlarmSounds.Default;
+        set => Set("alarmSound", value);
+    }
+
+    /// <summary>The picked sound's original file name, shown in Settings.</summary>
+    public string? CustomAlarmName
+    {
+        get => GetString("customAlarmName");
+        set => Set("customAlarmName", value);
+    }
+
+    /// <summary>The picked sound's copy in <see cref="Folder"/>.</summary>
+    public string? CustomAlarmFile
+    {
+        get => GetString("customAlarmFile");
+        set => Set("customAlarmFile", value);
+    }
+
+    public string CurrentTask
+    {
+        get => GetString("currentTask") ?? "";
+        set => Set("currentTask", value);
+    }
+
+    /// <summary>The preset length of a phase.</summary>
+    public int Minutes(TimerPhase phase) => phase switch
+    {
+        TimerPhase.ShortBreak => ShortBreak,
+        TimerPhase.LongBreak => LongBreak,
+        _ => StandardTimer,
+    };
+
+    private int GetMinutes(string key, TimerPhase phase) =>
+        Math.Clamp(GetInt(key) ?? phase.DefaultMinutes, 1, phase.MaximumMinutes);
+
+    private void SetMinutes(string key, TimerPhase phase, int minutes, [CallerMemberName] string property = "") =>
+        Set(key, Math.Clamp(minutes, 1, phase.MaximumMinutes), property);
+
+    private int? GetInt(string key) =>
+        _values[key] is JsonValue value && value.TryGetValue(out int number) ? number : null;
+
+    private bool? GetBool(string key) =>
+        _values[key] is JsonValue value && value.TryGetValue(out bool flag) ? flag : null;
+
+    private string? GetString(string key) =>
+        _values[key] is JsonValue value && value.TryGetValue(out string? text) ? text : null;
+
+    private void Set(string key, JsonNode? value, [CallerMemberName] string property = "")
+    {
+        if (JsonNode.DeepEquals(_values[key], value))
+        {
+            return;
+        }
+
+        _values[key] = value;
+        Save();
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
+    }
+
+    private static JsonObject Read(string file)
+    {
+        try
+        {
+            return JsonNode.Parse(File.ReadAllText(file)) as JsonObject ?? new JsonObject();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)
+        {
+            // No file yet (the first launch), or one that can't be read: start from the defaults.
+            return new JsonObject();
+        }
+    }
+
+    /// <summary>Writes the file in one rename, so a crash or power cut mid-write can never leave half a file.</summary>
+    private void Save()
+    {
+        var file = Path.Combine(Folder, FileName);
+        var temporary = file + ".tmp";
+
+        try
+        {
+            Directory.CreateDirectory(Folder);
+
+            using (var stream = File.Create(temporary))
+            {
+                using (var writer = new Utf8JsonWriter(stream, WriterOptions))
+                {
+                    _values.WriteTo(writer);
+                }
+
+                stream.Flush(flushToDisk: true);
+            }
+
+            File.Move(temporary, file, overwrite: true);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // A timer shouldn't stop working because a settings file can't be written. The values stay in memory,
+            // and the next change tries again.
+        }
+    }
+}

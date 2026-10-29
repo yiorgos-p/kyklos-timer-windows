@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="kyklos/kyklos.csproj" />
+  <Project Path="kyklos.Tests/kyklos.Tests.csproj" />
+</Solution>
