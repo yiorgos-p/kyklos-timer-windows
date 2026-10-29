@@ -20,6 +20,44 @@ public class SessionTests
     }
 
     [Fact]
+    public void AtMidnightTheCountGoesBackToZeroOnItsOwn()
+    {
+        using var test = new TestTimer();
+        test.Clock.LocalNow = new DateTime(2026, 10, 29, 23, 0, 0);
+        using var newDay = new NewDay(test.Clock, test.Scheduler, test.Timer.LoadTodaysSessions);
+        test.Finish();
+        Assert.Equal(1, test.Timer.CompletedFocusToday);
+
+        test.Advance(34 * 60);
+        Assert.Equal(1, test.Timer.CompletedFocusToday);
+
+        // Midnight, and a second for good measure.
+        test.Advance(60 + 1);
+        Assert.Equal(0, test.Timer.CompletedFocusToday);
+
+        // And again the night after.
+        test.Finish();
+        test.Advance(24 * 60 * 60 - 25 * 60);
+        Assert.Equal(0, test.Timer.CompletedFocusToday);
+    }
+
+    [Fact]
+    public void AfterASleepPastMidnightTheCountIsTodays()
+    {
+        using var test = new TestTimer();
+        test.Clock.LocalNow = new DateTime(2026, 10, 29, 22, 0, 0);
+        using var newDay = new NewDay(test.Clock, test.Scheduler, test.Timer.LoadTodaysSessions);
+        test.Finish();
+        test.Timer.ResetTimer();
+
+        // A clock put forward a day: the timer for midnight still waits, so checking on the change catches it.
+        test.Clock.LocalNow = new DateTime(2026, 10, 30, 9, 0, 0);
+        newDay.Recheck();
+
+        Assert.Equal(0, test.Timer.CompletedFocusToday);
+    }
+
+    [Fact]
     public void AFocusFinishedAfterMidnightCountsForTheNewDay()
     {
         using var test = new TestTimer(settings =>

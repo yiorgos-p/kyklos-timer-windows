@@ -13,6 +13,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- For the few Win32 calls (tray icon, window chrome) that take pointers. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Program.Main starts kyklos instead, so a second launch can hand over to the first. -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\kyklos.ico</ApplicationIcon>
 

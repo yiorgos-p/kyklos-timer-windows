@@ -21,7 +21,8 @@ public sealed class Notifier : INotifier
 
         try
         {
-            AppNotificationManager.Default.Register();
+            // Named here, or Windows takes the name from the app ID and heads notifications "Kyklos".
+            AppNotificationManager.Default.Register("kyklos", new Uri(Path.Combine(AppContext.BaseDirectory, "Assets", "kyklos-256.png")));
             _registered = true;
         }
         catch (COMException)

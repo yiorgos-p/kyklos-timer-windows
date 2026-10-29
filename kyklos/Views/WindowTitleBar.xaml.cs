@@ -56,9 +56,25 @@ public sealed partial class WindowTitleBar : UserControl
     {
         window.ExtendsContentIntoTitleBar = true;
         window.SetTitleBar(this);
-        SizeChanged += (_, _) => Update(window.AppWindow);
+
+        // A closed window can still report being activated, when there's no title bar left to update.
+        var open = true;
+        window.Closed += (_, _) => open = false;
+
+        SizeChanged += (_, _) =>
+        {
+            if (open)
+            {
+                Update(window.AppWindow);
+            }
+        };
         window.Activated += (_, e) =>
         {
+            if (!open)
+            {
+                return;
+            }
+
             var active = e.WindowActivationState != WindowActivationState.Deactivated;
             VisualStateManager.GoToState(this, active ? "Active" : "Inactive", false);
 

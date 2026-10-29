@@ -4,6 +4,7 @@ using Kyklos.Platform;
 using Kyklos.Views;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using Microsoft.Windows.AppLifecycle;
 using Windows.Graphics;
 using Windows.Win32;
 
@@ -30,6 +31,8 @@ public partial class App : Application
     private SystemWindow _system = null!;
     private TrayIcon _tray = null!;
     private GlobalHotKey _hotKey = null!;
+    private TimeJumps _timeJumps = null!;
+    private NewDay _newDay = null!;
     private MainWindow? _mainWindow;
     private TrayFlyout? _flyout;
     private MiniTimer? _miniTimer;
@@ -53,10 +56,13 @@ public partial class App : Application
         DispatcherShutdownMode = DispatcherShutdownMode.OnExplicitShutdown;
 
         var queue = DispatcherQueue.GetForCurrentThread();
+        var clock = new SystemClock();
+        var scheduler = new DispatcherScheduler(queue);
         _settings = new Settings(Settings.DefaultFolder);
         _notifier = new Notifier(() => queue.TryEnqueue(ShowMainWindow));
-        _timer = new TimerViewModel(_settings, new SystemClock(), new DispatcherScheduler(queue), new AlarmPlayer(queue), _notifier);
+        _timer = new TimerViewModel(_settings, clock, scheduler, new AlarmPlayer(queue), _notifier);
         _settledState = _timer.State;
+        _newDay = new NewDay(clock, scheduler, _timer.LoadTodaysSessions);
 
         _system = new SystemWindow();
         _tray = new TrayIcon(_system);
@@ -66,11 +72,36 @@ public partial class App : Application
         // From any app, the same as the main button.
         _hotKey = new GlobalHotKey(_system, _settings);
         _hotKey.Pressed += _timer.ToggleTimer;
+
+        // Timers don't fire while the PC sleeps, and a new clock moves midnight: catch up at once.
+        _timeJumps = new TimeJumps(_system);
+        _timeJumps.Happened += () =>
+        {
+            _timer.CatchUp();
+            _newDay.Recheck();
+        };
+
+        // Signing out or shutting down ends kyklos without a Quit, so keep the task typed then too.
+        _system.Received += (message, wParam, _) =>
+        {
+            if (message == PInvoke.WM_ENDSESSION && wParam != 0)
+            {
+                _timer.SaveTask();
+            }
+        };
+
         _timer.PropertyChanged += (_, _) => ScheduleUpdate(queue);
         _settings.PropertyChanged += OnSettingChanged;
         UpdateTray();
 
-        Show(MinimalModeRules.AtLaunch(_settings.MinimalMode));
+        // Launched again while running, from Start or a taskbar pin: the new copy hands over, and this one shows its window.
+        var instance = AppInstance.GetCurrent();
+        instance.Activated += (_, _) => queue.TryEnqueue(ShowMainWindow);
+
+        // A "time's up" notification left from before opens the window, as it does while kyklos runs.
+        Show(instance.GetActivatedEventArgs().Kind == ExtendedActivationKind.AppNotification
+            ? TimerSurface.MainWindow
+            : MinimalModeRules.AtLaunch(_settings.MinimalMode));
     }
 
     private void Show(TimerSurface? surface)
@@ -214,9 +245,17 @@ public partial class App : Application
             _updatePending = false;
             UpdateTray();
 
-            // Minimal mode swaps the window and the mini timer as sessions start and stop.
             var previous = _settledState;
             _settledState = _timer.State;
+            if (_settledState == previous)
+            {
+                return;
+            }
+
+            // While a session is on, Windows mustn't slow kyklos down; stopped or paused, there's nothing to slow.
+            PowerThrottling.Allow(_settledState is TimerState.Stopped or TimerState.Paused);
+
+            // Minimal mode swaps the window and the mini timer as sessions start and stop.
             Show(MinimalModeRules.ForStateChange(previous, _settledState, _settings.MinimalMode, _miniTimer is not null));
         });
     }
@@ -242,6 +281,8 @@ public partial class App : Application
         _timer.SaveTask();
         _notifier.Unregister();
         _hotKey.Dispose();
+        _timeJumps.Dispose();
+        _newDay.Dispose();
         _tray.Dispose();
         _system.Dispose();
         _flyout?.Close();
