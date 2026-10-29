@@ -127,6 +127,22 @@ public sealed class Settings : INotifyPropertyChanged
         set => Set("keepWindowOnTop", value);
     }
 
+    public MinimalMode MinimalMode
+    {
+        get => GetString("minimalMode") switch
+        {
+            "start" => MinimalMode.OnStart,
+            "always" => MinimalMode.Always,
+            _ => MinimalMode.Off,
+        };
+        set => Set("minimalMode", value switch
+        {
+            MinimalMode.OnStart => "start",
+            MinimalMode.Always => "always",
+            _ => "off",
+        });
+    }
+
     /// <summary>The Mac's "Show in Dock". When off, kyklos lives in the tray and its window.</summary>
     public bool ShowInTaskbar
     {
@@ -161,6 +177,13 @@ public sealed class Settings : INotifyPropertyChanged
     {
         get => GetPosition("mainWindowPos");
         set => SetPosition("mainWindowPos", value);
+    }
+
+    /// <summary>Where the mini timer was left, in screen pixels.</summary>
+    public WindowPosition? MiniTimerPos
+    {
+        get => GetPosition("miniTimerPos");
+        set => SetPosition("miniTimerPos", value);
     }
 
     /// <summary>The preset length of a phase.</summary>

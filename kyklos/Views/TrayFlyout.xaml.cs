@@ -115,7 +115,7 @@ public sealed partial class TrayFlyout : Window
             (int)Math.Ceiling(ContentWidth * scale),
             (int)Math.Ceiling(Root.DesiredSize.Height * scale)));
 
-        var size = AppWindow.Size;
+        var size = AppWindow.ClientSize;
         var display = DisplayArea.GetFromPoint(Anchor, DisplayAreaFallback.Nearest);
         var work = display.WorkArea;
         var screen = display.OuterBounds;
@@ -137,7 +137,7 @@ public sealed partial class TrayFlyout : Window
             x = work.X + work.Width - size.Width - margin;
         }
 
-        AppWindow.Move(new PointInt32(x, y));
+        WindowChrome.MoveClient(AppWindow, new PointInt32(x, y));
     }
 
     private void OnRootKeyDown(object sender, KeyRoutedEventArgs e)

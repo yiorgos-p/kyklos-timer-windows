@@ -11,8 +11,6 @@ using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 using Windows.System;
 using Windows.UI.ViewManagement;
-using Windows.Win32;
-using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Kyklos.Views;
 
@@ -45,11 +43,11 @@ public sealed partial class DialControl : UserControl
     private bool _editing;
 
     // Mouse mode's clicks act on release, so a drag can be told apart from them.
+    private readonly ClickCounter _clicks = new();
     private bool _clicking;
     private bool _clickDragged;
     private Point _clickPoint;
     private int _clickCount;
-    private ulong _lastClickTime;
 
     public DialControl()
     {
@@ -88,7 +86,7 @@ public sealed partial class DialControl : UserControl
 
         // Not animated: while running the arc moves a 3,600th of a turn a second, too little to see, and a drag should
         // follow the hand directly.
-        Arc.Data = ArcGeometry(fraction);
+        Arc.Data = RingGeometry.Arc(new Point(Center, Center), RingRadius, fraction);
         VisualStateManager.GoToState(this, state switch
         {
             TimerState.Paused => "Paused",
@@ -229,17 +227,9 @@ public sealed partial class DialControl : UserControl
         SetMinutes(minutes);
     }
 
-    /// <summary>Counts clicks the way Windows counts a double-click: within its time, and close to the last one.</summary>
     private void BeginClick(PointerPoint point)
     {
-        var scale = XamlRoot.RasterizationScale;
-        var slopX = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXDOUBLECLK) / scale / 2;
-        var slopY = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYDOUBLECLK) / scale / 2;
-        var withinTime = point.Timestamp - _lastClickTime <= PInvoke.GetDoubleClickTime() * 1000UL;
-        var nearby = Math.Abs(point.Position.X - _clickPoint.X) <= slopX && Math.Abs(point.Position.Y - _clickPoint.Y) <= slopY;
-
-        _clickCount = withinTime && nearby ? _clickCount + 1 : 1;
-        _lastClickTime = point.Timestamp;
+        _clickCount = _clicks.Press(point, XamlRoot.RasterizationScale);
         _clickPoint = point.Position;
         _clicking = true;
         _clickDragged = false;
@@ -381,8 +371,7 @@ public sealed partial class DialControl : UserControl
     // Geometry
 
     /// <summary>A point at this radius, at an angle measured clockwise from 12 o'clock.</summary>
-    private static Point PointOnDial(double radius, double angle) =>
-        new(Center + Math.Sin(angle) * radius, Center - Math.Cos(angle) * radius);
+    private static Point PointOnDial(double radius, double angle) => RingGeometry.PointAt(new Point(Center, Center), radius, angle);
 
     private static GeometryGroup TicksGeometry()
     {
@@ -411,27 +400,6 @@ public sealed partial class DialControl : UserControl
             new EllipseGeometry { Center = new Point(Center, Center), RadiusX = Center / 2, RadiusY = Center / 2 },
         },
     };
-
-    /// <summary>The arc from 12 o'clock, clockwise, for this fraction of the hour.</summary>
-    private static Geometry ArcGeometry(double fraction)
-    {
-        // An arc can't close on itself, so a full ring (time's up, or the whole hour set) is a circle.
-        if (fraction >= 1)
-        {
-            return new EllipseGeometry { Center = new Point(Center, Center), RadiusX = RingRadius, RadiusY = RingRadius };
-        }
-
-        var figure = new PathFigure { StartPoint = PointOnDial(RingRadius, 0) };
-        figure.Segments.Add(new ArcSegment
-        {
-            Point = PointOnDial(RingRadius, fraction * 2 * Math.PI),
-            Size = new Size(RingRadius, RingRadius),
-            SweepDirection = SweepDirection.Clockwise,
-            IsLargeArc = fraction > 0.5,
-        });
-
-        return new PathGeometry { Figures = { figure } };
-    }
 
     private static double Distance(Point a, Point b) => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
 

@@ -23,11 +23,6 @@ public enum TimerPresentation
 /// </summary>
 public sealed partial class TimerView : UserControl
 {
-    private const string PlayGlyph = "\uF5B0";
-    private const string PauseGlyph = "\uE769";
-    private const string ResetGlyph = "\uE7A7";
-    private const string StopGlyph = "\uEE95";
-
     private readonly TimerViewModel _timer;
     private readonly Settings _settings;
     private readonly TimerPresentation _presentation;
@@ -49,7 +44,7 @@ public sealed partial class TimerView : UserControl
         // The window has no footer, so Settings sits by the buttons there; its title bar already leaves room at the top.
         var flyout = presentation == TimerPresentation.Flyout;
         Footer.Visibility = flyout ? Visibility.Visible : Visibility.Collapsed;
-        SettingsButton.Visibility = flyout ? Visibility.Collapsed : Visibility.Visible;
+        IconButtons.Visibility = flyout ? Visibility.Collapsed : Visibility.Visible;
         Root.Padding = new Thickness(18, flyout ? 18 : 6, 18, 18);
 
         // The selected phase and the main button take the phase colour. Both controls read these brushes as theme
@@ -83,6 +78,9 @@ public sealed partial class TimerView : UserControl
 
     /// <summary>The flyout's "Open window".</summary>
     public event Action? OpenWindowRequested;
+
+    /// <summary>The window's button for the mini timer, there while Minimal mode is on.</summary>
+    public event Action? MiniTimerRequested;
 
     /// <summary>The flyout's power button.</summary>
     public event Action? QuitRequested;
@@ -165,13 +163,14 @@ public sealed partial class TimerView : UserControl
         ResetButton.Visibility = StartButton.Visibility;
         StartColumn.Width = mouse || state == TimerState.Finished ? GridLength.Auto : share;
         ResetColumn.Width = mouse ? GridLength.Auto : share;
-        Buttons.ColumnSpacing = mouse ? 0 : 8;
+        IconButtons.Margin = new Thickness(mouse ? 0 : 8, 0, 0, 0);
+        MiniTimerButton.Visibility = _settings.MinimalMode == MinimalMode.Off ? Visibility.Collapsed : Visibility.Visible;
         Buttons.HorizontalAlignment = mouse ? HorizontalAlignment.Center : HorizontalAlignment.Stretch;
         StartLabel.Text = _timer.PrimaryActionTitle;
         ResetLabel.Text = _timer.ResetActionTitle;
         AutomationProperties.SetName(StartButton, _timer.PrimaryActionTitle);
         AutomationProperties.SetName(ResetButton, _timer.ResetActionTitle);
-        ResetIcon.Glyph = state == TimerState.Finished ? StopGlyph : ResetGlyph;
+        ResetIcon.Glyph = state == TimerState.Finished ? Glyphs.StopSolid : Glyphs.Undo;
 
         var startIcon = (state, _timer.NextPhase);
         if (_startIconShows != startIcon)
@@ -181,8 +180,8 @@ public sealed partial class TimerView : UserControl
             {
                 // Once time's up the button starts the next phase, so it shows that phase's icon.
                 TimerState.Finished => PhaseIcons.Create(_timer.NextPhase),
-                TimerState.Running => new FontIcon { Glyph = PauseGlyph },
-                _ => new FontIcon { Glyph = PlayGlyph },
+                TimerState.Running => new FontIcon { Glyph = Glyphs.PauseBold },
+                _ => new FontIcon { Glyph = Glyphs.PlaySolid },
             };
         }
     }
@@ -242,6 +241,8 @@ public sealed partial class TimerView : UserControl
     private void OnSettingsClicked(object sender, RoutedEventArgs e) => SettingsRequested?.Invoke();
 
     private void OnOpenWindowClicked(object sender, RoutedEventArgs e) => OpenWindowRequested?.Invoke();
+
+    private void OnMiniTimerClicked(object sender, RoutedEventArgs e) => MiniTimerRequested?.Invoke();
 
     private void OnQuitClicked(object sender, RoutedEventArgs e) => QuitRequested?.Invoke();
 

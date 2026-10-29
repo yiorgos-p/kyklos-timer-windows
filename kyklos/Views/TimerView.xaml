@@ -119,9 +119,9 @@
             TextAlignment="Center"
             TextChanged="OnTaskChanged" />
 
-        <Grid
-            x:Name="Buttons"
-            ColumnSpacing="8">
+        <!--  Spaced with margins rather than ColumnSpacing, which would leave a gap for the icon buttons in the flyout,
+              where there are none.  -->
+        <Grid x:Name="Buttons">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="StartColumn" Width="*" />
                 <ColumnDefinition x:Name="ResetColumn" Width="*" />
@@ -150,6 +150,7 @@
                 x:Name="ResetButton"
                 Grid.Column="1"
                 Height="36"
+                Margin="8,0,0,0"
                 HorizontalAlignment="Stretch"
                 AllowFocusOnInteraction="False"
                 Click="OnResetClicked">
@@ -159,18 +160,35 @@
                 </StackPanel>
             </Button>
 
-            <Button
-                x:Name="SettingsButton"
+            <!--  The window's icon buttons; the flyout has Settings in its footer instead.  -->
+            <StackPanel
+                x:Name="IconButtons"
                 Grid.Column="2"
-                Width="36"
-                Height="36"
-                Padding="0"
-                AllowFocusOnInteraction="False"
-                AutomationProperties.Name="Open kyklos settings"
-                Click="OnSettingsClicked"
-                ToolTipService.ToolTip="Open kyklos settings">
-                <FontIcon FontSize="16" Glyph="&#xE713;" />
-            </Button>
+                Orientation="Horizontal"
+                Spacing="8">
+                <Button
+                    x:Name="MiniTimerButton"
+                    Width="36"
+                    Height="36"
+                    Padding="0"
+                    AllowFocusOnInteraction="False"
+                    AutomationProperties.Name="Switch to the small floating timer"
+                    Click="OnMiniTimerClicked"
+                    ToolTipService.ToolTip="Switch to the small floating timer">
+                    <!--  MiniContract2Mirrored, as Calculator's button for its small always-on-top view.  -->
+                    <FontIcon FontSize="16" Glyph="&#xEE49;" />
+                </Button>
+                <Button
+                    Width="36"
+                    Height="36"
+                    Padding="0"
+                    AllowFocusOnInteraction="False"
+                    AutomationProperties.Name="Open kyklos settings"
+                    Click="OnSettingsClicked"
+                    ToolTipService.ToolTip="Open kyklos settings">
+                    <FontIcon FontSize="16" Glyph="&#xE713;" />
+                </Button>
+            </StackPanel>
         </Grid>
 
         <!--  The flyout's footer. Quit lives here because with the taskbar button off there's no other obvious way out.  -->

@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Kyklos.Engine;
 using Kyklos.Platform;
 using Kyklos.Views;
@@ -10,7 +11,7 @@ namespace Kyklos;
 
 /// <summary>
 /// Starts kyklos and owns what lives as long as it does: the settings, the timer, the tray icon, and which of its
-/// surfaces is showing. There's one timer on screen at a time: the window, or the tray flyout.
+/// surfaces is showing. There's one timer on screen at a time: the window, the tray flyout, or the mini timer.
 /// </summary>
 public partial class App : Application
 {
@@ -30,8 +31,12 @@ public partial class App : Application
     private TrayIcon _tray = null!;
     private MainWindow? _mainWindow;
     private TrayFlyout? _flyout;
+    private MiniTimer? _miniTimer;
     private long _flyoutClosedAt;
-    private bool _trayPending;
+    private bool _updatePending;
+
+    /// <summary>The timer's state as last settled, which Minimal mode compares against.</summary>
+    private TimerState _settledState;
 
     public App()
     {
@@ -49,20 +54,36 @@ public partial class App : Application
         _settings = new Settings(Settings.DefaultFolder);
         _notifier = new Notifier(() => queue.TryEnqueue(ShowMainWindow));
         _timer = new TimerViewModel(_settings, new SystemClock(), new DispatcherScheduler(queue), new AlarmPlayer(queue), _notifier);
+        _settledState = _timer.State;
 
         _system = new SystemWindow();
         _tray = new TrayIcon(_system);
         _tray.Selected += ToggleFlyout;
         _tray.MenuRequested += ShowTrayMenu;
-        _timer.PropertyChanged += (_, _) => ScheduleTrayUpdate(queue);
+        _timer.PropertyChanged += (_, _) => ScheduleUpdate(queue);
+        _settings.PropertyChanged += OnSettingChanged;
         UpdateTray();
 
-        ShowMainWindow();
+        Show(MinimalModeRules.AtLaunch(_settings.MinimalMode));
+    }
+
+    private void Show(TimerSurface? surface)
+    {
+        switch (surface)
+        {
+            case TimerSurface.MainWindow:
+                ShowMainWindow();
+                break;
+            case TimerSurface.MiniTimer:
+                ShowMiniTimer();
+                break;
+        }
     }
 
     private void ShowMainWindow()
     {
         _flyout?.Close();
+        CloseMiniTimer();
 
         if (_mainWindow is null)
         {
@@ -76,10 +97,49 @@ public partial class App : Application
                 }
             };
             window.View.SettingsRequested += ShowSettings;
+            window.View.MiniTimerRequested += ShowMiniTimer;
             _mainWindow = window;
         }
 
         _mainWindow.BringToFront();
+    }
+
+    /// <summary>The mini timer takes the window's place, without taking the keyboard from the app being worked in.</summary>
+    private void ShowMiniTimer()
+    {
+        _flyout?.Close();
+
+        if (_mainWindow is { } window)
+        {
+            _mainWindow = null;
+            window.Close();
+        }
+
+        if (_miniTimer is null)
+        {
+            var miniTimer = new MiniTimer(_timer, _settings);
+            miniTimer.Closed += (_, _) =>
+            {
+                // Its ×: it comes back when the next session starts, and the tray opens the window meanwhile.
+                if (_miniTimer == miniTimer)
+                {
+                    _miniTimer = null;
+                }
+            };
+            miniTimer.OpenWindowRequested += ShowMainWindow;
+            _miniTimer = miniTimer;
+        }
+
+        _miniTimer.Show();
+    }
+
+    private void CloseMiniTimer()
+    {
+        if (_miniTimer is { } miniTimer)
+        {
+            _miniTimer = null;
+            miniTimer.Close();
+        }
     }
 
     private void ToggleFlyout(PointInt32 click)
@@ -117,19 +177,27 @@ public partial class App : Application
     {
     }
 
-    /// <summary>Several properties change together on each tick; redraw the tray icon once, after they all have.</summary>
-    private void ScheduleTrayUpdate(DispatcherQueue queue)
+    /// <summary>
+    /// Several properties change together on each tick and each click; react once, after they all have. Reading the state
+    /// once it has settled also skips the instant of "stopped" between time's up and the next phase.
+    /// </summary>
+    private void ScheduleUpdate(DispatcherQueue queue)
     {
-        if (_trayPending)
+        if (_updatePending)
         {
             return;
         }
 
-        _trayPending = true;
+        _updatePending = true;
         queue.TryEnqueue(() =>
         {
-            _trayPending = false;
+            _updatePending = false;
             UpdateTray();
+
+            // Minimal mode swaps the window and the mini timer as sessions start and stop.
+            var previous = _settledState;
+            _settledState = _timer.State;
+            Show(MinimalModeRules.ForStateChange(previous, _settledState, _settings.MinimalMode, _miniTimer is not null));
         });
     }
 
@@ -137,6 +205,15 @@ public partial class App : Application
     {
         var (tone, fraction) = TrayIndicator.For(_timer);
         _tray.Show(tone, fraction, _timer.TrayTitle);
+    }
+
+    private void OnSettingChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // A new Minimal mode applies at once, rather than at the next session.
+        if (e.PropertyName == nameof(Settings.MinimalMode))
+        {
+            Show(MinimalModeRules.ForModeChange(_settings.MinimalMode, _timer.State, _miniTimer is not null));
+        }
     }
 
     private void Quit()
@@ -147,6 +224,7 @@ public partial class App : Application
         _tray.Dispose();
         _system.Dispose();
         _flyout?.Close();
+        CloseMiniTimer();
         _mainWindow?.Close();
         Exit();
     }

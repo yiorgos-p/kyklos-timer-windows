@@ -8,9 +8,6 @@ namespace Kyklos.Views;
 /// <summary>The main window's title bar: the app icon and name, and the "Keep on top" pin, as in Calculator.</summary>
 public sealed partial class WindowTitleBar : UserControl
 {
-    private const string PinGlyph = "\uE718";
-    private const string PinnedGlyph = "\uE841";
-
     public WindowTitleBar()
     {
         InitializeComponent();
@@ -24,7 +21,7 @@ public sealed partial class WindowTitleBar : UserControl
         set
         {
             PinButton.IsChecked = value;
-            PinIcon.Glyph = value ? PinnedGlyph : PinGlyph;
+            PinIcon.Glyph = value ? Glyphs.PinFill : Glyphs.Pin;
             ToolTipService.SetToolTip(PinButton,
                 value ? "Stop keeping this window above other windows" : "Keep this window above other windows");
         }

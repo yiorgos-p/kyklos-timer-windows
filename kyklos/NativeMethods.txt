@@ -1,3 +1,4 @@
+ClientToScreen
 CreateBitmap
 CreateDIBSection
 CreateIconIndirect
@@ -16,6 +17,7 @@ GetDpiForWindow
 GetModuleHandle
 GetSystemMetrics
 GetSystemMetricsForDpi
+GetWindowLong
 ITaskbarList3
 LoadImage
 PostMessage
@@ -24,6 +26,7 @@ RegisterWindowMessage
 RemoveWindowSubclass
 SetCurrentProcessExplicitAppUserModelID
 SetForegroundWindow
+SetWindowLong
 SetWindowSubclass
 Shell_NotifyIcon
 Shell_NotifyIconGetRect

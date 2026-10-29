@@ -20,13 +20,6 @@ namespace Kyklos.Views;
 /// </summary>
 internal static class TrayMenu
 {
-    private const string PlayGlyph = "\uF5B0";
-    private const string PauseGlyph = "\uE769";
-    private const string ResetGlyph = "\uE7A7";
-    private const string StopGlyph = "\uEE95";
-    private const string SettingsGlyph = "\uE713";
-    private const string PowerGlyph = "\uE7E8";
-
     public static unsafe void Show(PointInt32 point, bool byKeyboard, TimerViewModel timer, AppTheme theme, Action openWindow, Action openSettings, Action quit)
     {
         var root = new Grid { RequestedTheme = theme.ToElementTheme() };
@@ -59,20 +52,20 @@ internal static class TrayMenu
             Text = timer.PrimaryActionTitle,
             Icon = finished
                 ? PhaseIcons.Create(timer.NextPhase)
-                : new FontIcon { Glyph = timer.State == TimerState.Running ? PauseGlyph : PlayGlyph },
+                : new FontIcon { Glyph = timer.State == TimerState.Running ? Glyphs.PauseBold : Glyphs.PlaySolid },
         };
         main.Click += (_, _) => timer.ToggleTimer();
 
-        var reset = new MenuFlyoutItem { Text = timer.ResetActionTitle, Icon = new FontIcon { Glyph = finished ? StopGlyph : ResetGlyph } };
+        var reset = new MenuFlyoutItem { Text = timer.ResetActionTitle, Icon = new FontIcon { Glyph = finished ? Glyphs.StopSolid : Glyphs.Undo } };
         reset.Click += (_, _) => timer.ResetTimer();
 
         var open = new MenuFlyoutItem { Text = "Open kyklos" };
         open.Click += (_, _) => openWindow();
 
-        var settings = new MenuFlyoutItem { Text = "Settings", Icon = new FontIcon { Glyph = SettingsGlyph } };
+        var settings = new MenuFlyoutItem { Text = "Settings", Icon = new FontIcon { Glyph = Glyphs.Settings } };
         settings.Click += (_, _) => openSettings();
 
-        var quitItem = new MenuFlyoutItem { Text = "Quit kyklos", Icon = new FontIcon { Glyph = PowerGlyph } };
+        var quitItem = new MenuFlyoutItem { Text = "Quit kyklos", Icon = new FontIcon { Glyph = Glyphs.PowerButton } };
         quitItem.Click += (_, _) => quit();
 
         var menu = new MenuFlyout

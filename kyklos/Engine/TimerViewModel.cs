@@ -83,7 +83,7 @@ public sealed class TimerViewModel : INotifyPropertyChanged
             if (Set(ref field, value))
             {
                 Notify(nameof(DisplayTime), nameof(DialFraction), nameof(StatusCaption), nameof(TrayTitle),
-                    nameof(NextPhase), nameof(PrimaryActionTitle), nameof(ResetActionTitle));
+                    nameof(MiniTimerCaption), nameof(NextPhase), nameof(PrimaryActionTitle), nameof(ResetActionTitle));
             }
         }
     }
@@ -95,7 +95,7 @@ public sealed class TimerViewModel : INotifyPropertyChanged
         {
             if (Set(ref field, value))
             {
-                Notify(nameof(NextPhase), nameof(PrimaryActionTitle));
+                Notify(nameof(NextPhase), nameof(PrimaryActionTitle), nameof(MiniTimerCaption));
             }
         }
     }
@@ -146,7 +146,7 @@ public sealed class TimerViewModel : INotifyPropertyChanged
         {
             if (Set(ref _currentTask, value))
             {
-                Notify(nameof(TrayTitle));
+                Notify(nameof(TrayTitle), nameof(MiniTimerCaption));
                 ScheduleTaskSave();
             }
         }
@@ -216,6 +216,22 @@ public sealed class TimerViewModel : INotifyPropertyChanged
             }
 
             return title;
+        }
+    }
+
+    /// <summary>The mini timer's words next to the time: what the session is for, or the phase, or how things stand.</summary>
+    public string MiniTimerCaption
+    {
+        get
+        {
+            var task = CurrentTask.Trim();
+
+            return State switch
+            {
+                TimerState.Finished => "Time's up",
+                TimerState.Paused when task.Length == 0 => "Paused",
+                _ => task.Length > 0 ? task : Phase.Title,
+            };
         }
     }
 

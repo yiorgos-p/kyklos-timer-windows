@@ -1,0 +1,137 @@
+<UserControl
+    x:Class="Kyklos.Views.MiniTimerView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    IsTabStop="True"
+    ToolTipService.ToolTip="Drag to move. Double-click for the full window."
+    UseSystemFocusVisuals="False">
+
+    <Grid
+        x:Name="Root"
+        Padding="14,0,8,0"
+        Background="Transparent"
+        ColumnSpacing="9">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="TimeStates">
+                <VisualState x:Name="Ready" />
+                <VisualState x:Name="Paused">
+                    <VisualState.Setters>
+                        <Setter Target="TimeText.Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="TimesUp">
+                    <VisualState.Setters>
+                        <Setter Target="Arc.Stroke" Value="{ThemeResource OvertimeBrush}" />
+                        <Setter Target="TimeText.Foreground" Value="{ThemeResource OvertimeBrush}" />
+                        <Setter Target="CaptionText.Foreground" Value="{ThemeResource OvertimeBrush}" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <!--  The ring and the caption let clicks through to the background, which moves the window.  -->
+        <Grid
+            Width="18"
+            Height="18"
+            VerticalAlignment="Center"
+            IsHitTestVisible="False">
+            <Ellipse Stroke="{ThemeResource DialTrackBrush}" StrokeThickness="3" />
+            <Path
+                x:Name="Arc"
+                StrokeEndLineCap="Round"
+                StrokeStartLineCap="Round"
+                StrokeThickness="3" />
+        </Grid>
+
+        <Grid Grid.Column="1" VerticalAlignment="Center">
+            <TextBlock
+                x:Name="TimeText"
+                FontFamily="Segoe UI Variable Display"
+                FontSize="17"
+                FontWeight="SemiBold"
+                PointerPressed="OnTimePressed"
+                Typography.NumeralAlignment="Tabular" />
+            <TextBox
+                x:Name="MinutesBox"
+                Width="46"
+                MinWidth="0"
+                AutomationProperties.Name="Minutes"
+                BeforeTextChanging="OnMinutesTextChanging"
+                FontFamily="Segoe UI Variable Display"
+                FontSize="15"
+                FontWeight="SemiBold"
+                InputScope="Number"
+                KeyDown="OnMinutesKeyDown"
+                Loaded="OnMinutesBoxLoaded"
+                LostFocus="OnMinutesLostFocus"
+                MaxLength="2"
+                TextAlignment="Center"
+                Visibility="Collapsed" />
+        </Grid>
+
+        <TextBlock
+            x:Name="CaptionText"
+            Grid.Column="2"
+            VerticalAlignment="Center"
+            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+            IsHitTestVisible="False"
+            MaxLines="1"
+            TextTrimming="CharacterEllipsis"
+            TextWrapping="NoWrap" />
+
+        <!--  The buttons don't take the focus, so clicking them leaves the keyboard with the app being worked in.  -->
+        <StackPanel
+            Grid.Column="3"
+            Margin="1,0,0,0"
+            VerticalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="6">
+            <Button
+                x:Name="PlayPauseButton"
+                Width="32"
+                Height="32"
+                Padding="0"
+                AllowFocusOnInteraction="False"
+                Click="OnActionClicked"
+                CornerRadius="16"
+                Style="{StaticResource SubtleButtonStyle}">
+                <FontIcon x:Name="PlayPauseIcon" FontSize="12" />
+            </Button>
+            <Button
+                x:Name="NextPhaseButton"
+                Height="32"
+                Padding="12,0,14,0"
+                AllowFocusOnInteraction="False"
+                Click="OnActionClicked"
+                CornerRadius="16"
+                Style="{StaticResource AccentButtonStyle}"
+                Visibility="Collapsed">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <!--  PlaySolid  -->
+                    <FontIcon FontSize="12" Glyph="&#xF5B0;" />
+                    <TextBlock x:Name="NextPhaseLabel" />
+                </StackPanel>
+            </Button>
+            <Button
+                Width="32"
+                Height="32"
+                Padding="0"
+                AllowFocusOnInteraction="False"
+                AutomationProperties.Name="Close"
+                Click="OnCloseClicked"
+                CornerRadius="16"
+                Style="{StaticResource SubtleButtonStyle}"
+                ToolTipService.ToolTip="Close">
+                <!--  Cancel  -->
+                <FontIcon FontSize="12" Glyph="&#xE711;" />
+            </Button>
+        </StackPanel>
+    </Grid>
+</UserControl>
