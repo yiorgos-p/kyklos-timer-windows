@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Width="220"
     Height="220"
+    CornerRadius="110"
     FocusVisualMargin="-2"
     IsTabStop="True"
     UseSystemFocusVisuals="True">

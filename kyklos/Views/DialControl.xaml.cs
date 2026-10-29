@@ -373,7 +373,7 @@ public sealed partial class DialControl : UserControl
         _editing = false;
         Editor.Visibility = Visibility.Collapsed;
         Readout.Visibility = Visibility.Visible;
-        Focus(FocusState.Programmatic);
+        Focus(FocusState.Pointer);
     }
 
     internal bool IsEditing => _editing;

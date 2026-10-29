@@ -67,9 +67,10 @@ public sealed partial class TimerView : UserControl
 
     /// <summary>
     /// Puts the keyboard focus on the dial, where Space starts the timer and the arrows set its length. A window never
-    /// opens with the cursor in the task field, which would swallow Space.
+    /// opens with the cursor in the task field, which would swallow Space. Moved like this, as if by a click, the focus
+    /// shows no ring; tabbing to the dial does.
     /// </summary>
-    public void FocusDial() => Dial.Focus(FocusState.Programmatic);
+    public void FocusDial() => Dial.Focus(FocusState.Pointer);
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
