@@ -8,8 +8,8 @@ namespace Kyklos.Views;
 /// <summary>The main window's title bar: the app icon and name, and the "Keep on top" pin, as in Calculator.</summary>
 public sealed partial class WindowTitleBar : UserControl
 {
-    private const string PinGlyph = "";
-    private const string PinnedGlyph = "";
+    private const string PinGlyph = "\uE718";
+    private const string PinnedGlyph = "\uE841";
 
     public WindowTitleBar()
     {

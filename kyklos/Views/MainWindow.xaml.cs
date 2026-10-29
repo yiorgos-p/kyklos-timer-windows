@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Kyklos.Engine;
 using Kyklos.Platform;
 using Microsoft.UI;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -18,18 +19,22 @@ public sealed partial class MainWindow : Window
 {
     private const double ContentWidth = 360;
 
+    private readonly TimerViewModel _timer;
     private readonly Settings _settings;
     private readonly TimerView _view;
     private readonly OverlappedPresenter _presenter;
     private readonly WindowMessages _messages;
+    private readonly TaskbarProgress _progress;
     private bool _focusedOnce;
+    private bool _progressPending;
 
     public MainWindow(TimerViewModel timer, Settings settings)
     {
+        _timer = timer;
         _settings = settings;
         InitializeComponent();
 
-        _view = new TimerView(timer, settings);
+        _view = new TimerView(timer, settings, TimerPresentation.Window);
         Grid.SetRow(_view, 1);
         Root.Children.Add(_view);
 
@@ -49,6 +54,7 @@ public sealed partial class MainWindow : Window
 
             return message == PInvoke.WM_SYSCOMMAND && (wParam & 0xFFF0) == PInvoke.SC_MAXIMIZE;
         });
+        _progress = new TaskbarProgress(window);
 
         // The content runs under the title bar, so Mica covers the window edge to edge, as the Mac window is one glass
         // surface.
@@ -61,6 +67,7 @@ public sealed partial class MainWindow : Window
         PlaceWindow();
 
         _settings.PropertyChanged += OnSettingChanged;
+        _timer.PropertyChanged += OnTimerChanged;
         _view.SizeChanged += (_, e) =>
         {
             if (e.NewSize.Height != e.PreviousSize.Height)
@@ -74,11 +81,36 @@ public sealed partial class MainWindow : Window
         Closed += OnClosed;
     }
 
-    /// <summary>Raised when the Settings button is clicked.</summary>
-    public event Action? SettingsRequested
+    public TimerView View => _view;
+
+    /// <summary>On screen and not minimised.</summary>
+    public bool IsShowing => AppWindow.IsVisible && _presenter.State != OverlappedPresenterState.Minimized;
+
+    /// <summary>Brings the window back up, out of the taskbar if it was minimised.</summary>
+    public void BringToFront()
     {
-        add => _view.SettingsRequested += value;
-        remove => _view.SettingsRequested -= value;
+        if (_presenter.State == OverlappedPresenterState.Minimized)
+        {
+            _presenter.Restore();
+        }
+
+        Activate();
+    }
+
+    /// <summary>
+    /// Gives way to the tray flyout, so there's one timer on screen: hidden with Windows' own animation, then let go of,
+    /// so it doesn't sit in memory. Opening it again builds a new one where this one was.
+    /// </summary>
+    public void FadeOutAndClose()
+    {
+        SavePosition();
+        AppWindow.Hide();
+
+        var close = DispatcherQueue.CreateTimer();
+        close.Interval = TimeSpan.FromMilliseconds(200);
+        close.IsRepeating = false;
+        close.Tick += (_, _) => Close();
+        close.Start();
     }
 
     private double Scale => PInvoke.GetDpiForWindow(new HWND(Win32Interop.GetWindowFromWindowId(AppWindow.Id))) / 96.0;
@@ -88,7 +120,7 @@ public sealed partial class MainWindow : Window
     {
         Root.Measure(new Size(ContentWidth, double.PositiveInfinity));
         var scale = Scale;
-        AppWindow.ResizeClient(new SizeInt32(
+        WindowChrome.ResizeClient(AppWindow, new SizeInt32(
             (int)Math.Ceiling(ContentWidth * scale),
             (int)Math.Ceiling(Root.DesiredSize.Height * scale)));
         AppTitleBar.SetIconScale(scale);
@@ -132,16 +164,13 @@ public sealed partial class MainWindow : Window
         AppWindow.Move(new PointInt32(area.X + (area.Width - size.Width) / 2, area.Y + (area.Height - size.Height) / 2));
     }
 
+    private void SavePosition() => _settings.MainWindowPos = new WindowPosition(AppWindow.Position.X, AppWindow.Position.Y);
+
     private void OnSettingChanged(object? sender, PropertyChangedEventArgs e) => ApplySettings();
 
     private void ApplySettings()
     {
-        Root.RequestedTheme = _settings.Appearance switch
-        {
-            AppTheme.Light => ElementTheme.Light,
-            AppTheme.Dark => ElementTheme.Dark,
-            _ => ElementTheme.Default,
-        };
+        Root.RequestedTheme = _settings.Appearance.ToElementTheme();
         AppWindow.TitleBar.PreferredTheme = _settings.Appearance switch
         {
             AppTheme.Light => TitleBarTheme.Light,
@@ -151,7 +180,30 @@ public sealed partial class MainWindow : Window
 
         _presenter.IsAlwaysOnTop = _settings.KeepWindowOnTop;
         AppTitleBar.IsPinned = _settings.KeepWindowOnTop;
+
+        // Off, kyklos lives in the tray and this window: no taskbar button, and not in Alt+Tab.
+        AppWindow.IsShownInSwitchers = _settings.ShowInTaskbar;
+        UpdateProgress();
     }
+
+    // Several properties change together on each tick; update the taskbar once, after they all have.
+    private void OnTimerChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_progressPending)
+        {
+            return;
+        }
+
+        _progressPending = true;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            _progressPending = false;
+            UpdateProgress();
+        });
+    }
+
+    /// <summary>The session's progress on the taskbar button, so the time shows even with the window minimised.</summary>
+    private void UpdateProgress() => _progress.Show(_settings.ShowInTaskbar ? _timer : null);
 
     private void OnActivated(object sender, WindowActivatedEventArgs args)
     {
@@ -164,14 +216,15 @@ public sealed partial class MainWindow : Window
             UpdateTitleBar();
 
             // After WinUI has given the first focus to the first control (the pin), where Space would toggle it.
-            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, _view.FocusDial);
+            DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, _view.FocusDial);
         }
     }
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
         _settings.PropertyChanged -= OnSettingChanged;
-        _settings.MainWindowPos = new WindowPosition(AppWindow.Position.X, AppWindow.Position.Y);
+        _timer.PropertyChanged -= OnTimerChanged;
+        SavePosition();
         _messages.Dispose();
     }
 }

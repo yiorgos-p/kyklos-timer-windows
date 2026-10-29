@@ -18,19 +18,13 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid
+    <!--  A stack rather than a grid: its spacing skips rows that are hidden, like the window's footer.  -->
+    <StackPanel
         x:Name="Root"
         Padding="18,6,18,18"
         Background="Transparent"
         PreviewKeyDown="OnPreviewKeyDown"
-        RowSpacing="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+        Spacing="16">
 
         <!--  The phase switcher, or in Zen mode while the timer runs just the phase, in the same space so nothing jumps.  -->
         <Grid>
@@ -68,11 +62,9 @@
 
         <views:DialControl
             x:Name="Dial"
-            Grid.Row="1"
             HorizontalAlignment="Center" />
 
         <StackPanel
-            Grid.Row="2"
             Height="18"
             HorizontalAlignment="Center"
             Orientation="Horizontal"
@@ -121,7 +113,6 @@
 
         <TextBox
             x:Name="TaskBox"
-            Grid.Row="3"
             AutomationProperties.Name="Current task"
             KeyDown="OnTaskKeyDown"
             PlaceholderText="What are you working on?"
@@ -130,7 +121,6 @@
 
         <Grid
             x:Name="Buttons"
-            Grid.Row="4"
             ColumnSpacing="8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="StartColumn" Width="*" />
@@ -182,5 +172,54 @@
                 <FontIcon FontSize="16" Glyph="&#xE713;" />
             </Button>
         </Grid>
-    </Grid>
+
+        <!--  The flyout's footer. Quit lives here because with the taskbar button off there's no other obvious way out.  -->
+        <Grid
+            x:Name="Footer"
+            ColumnSpacing="4"
+            Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button
+                Width="36"
+                Height="32"
+                Padding="0"
+                AllowFocusOnInteraction="False"
+                AutomationProperties.Name="Quit kyklos"
+                Click="OnQuitClicked"
+                Style="{StaticResource SubtleButtonStyle}"
+                ToolTipService.ToolTip="Quit kyklos">
+                <FontIcon FontSize="16" Glyph="&#xE7E8;" />
+            </Button>
+            <Button
+                Grid.Column="2"
+                AllowFocusOnInteraction="False"
+                AutomationProperties.Name="Open window"
+                Click="OnOpenWindowClicked"
+                Style="{StaticResource SubtleButtonStyle}"
+                ToolTipService.ToolTip="Open the timer in its own window">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontSize="16" Glyph="&#xE8A7;" />
+                    <TextBlock Text="Open window" />
+                </StackPanel>
+            </Button>
+            <Button
+                Grid.Column="3"
+                AllowFocusOnInteraction="False"
+                AutomationProperties.Name="Settings"
+                Click="OnSettingsClicked"
+                Style="{StaticResource SubtleButtonStyle}"
+                ToolTipService.ToolTip="Open kyklos settings">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontSize="16" Glyph="&#xE713;" />
+                    <TextBlock Text="Settings" />
+                </StackPanel>
+            </Button>
+        </Grid>
+    </StackPanel>
 </UserControl>

@@ -1,0 +1,22 @@
+<Window
+    x:Class="Kyklos.Views.TrayFlyout"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="kyklos">
+
+    <Window.SystemBackdrop>
+        <DesktopAcrylicBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid
+        x:Name="Root"
+        KeyDown="OnRootKeyDown"
+        Opacity="0">
+        <Grid.OpacityTransition>
+            <ScalarTransition Duration="0:0:0.15" />
+        </Grid.OpacityTransition>
+        <Grid.TranslationTransition>
+            <Vector3Transition Duration="0:0:0.15" />
+        </Grid.TranslationTransition>
+    </Grid>
+</Window>

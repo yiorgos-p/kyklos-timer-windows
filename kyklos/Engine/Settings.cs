@@ -127,6 +127,13 @@ public sealed class Settings : INotifyPropertyChanged
         set => Set("keepWindowOnTop", value);
     }
 
+    /// <summary>The Mac's "Show in Dock". When off, kyklos lives in the tray and its window.</summary>
+    public bool ShowInTaskbar
+    {
+        get => GetBool("showInTaskbar") ?? true;
+        set => Set("showInTaskbar", value);
+    }
+
     public AppTheme Appearance
     {
         get => GetString("appearance") switch

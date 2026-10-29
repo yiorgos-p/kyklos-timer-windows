@@ -10,18 +10,27 @@ using Windows.UI.ViewManagement;
 
 namespace Kyklos.Views;
 
+/// <summary>Where a timer view is shown: in the main window, or in the tray flyout with its footer.</summary>
+public enum TimerPresentation
+{
+    Window,
+    Flyout,
+}
+
 /// <summary>
-/// The timer as the window shows it: the phase switcher, the dial, today's sessions, the task and the buttons.
+/// The timer as the window and the tray flyout show it: the phase switcher, the dial, today's sessions, the task and the
+/// buttons.
 /// </summary>
 public sealed partial class TimerView : UserControl
 {
-    private const string PlayGlyph = "";
-    private const string PauseGlyph = "";
-    private const string ResetGlyph = "";
-    private const string StopGlyph = "";
+    private const string PlayGlyph = "\uF5B0";
+    private const string PauseGlyph = "\uE769";
+    private const string ResetGlyph = "\uE7A7";
+    private const string StopGlyph = "\uEE95";
 
     private readonly TimerViewModel _timer;
     private readonly Settings _settings;
+    private readonly TimerPresentation _presentation;
     private readonly Palette _palette = new();
     private IDisposable? _systemColors;
     private bool _refreshPending;
@@ -30,11 +39,18 @@ public sealed partial class TimerView : UserControl
     private (TimerState, TimerPhase)? _startIconShows;
     private TimerPhase? _zenLabelShows;
 
-    public TimerView(TimerViewModel timer, Settings settings)
+    public TimerView(TimerViewModel timer, Settings settings, TimerPresentation presentation)
     {
         _timer = timer;
         _settings = settings;
+        _presentation = presentation;
         InitializeComponent();
+
+        // The window has no footer, so Settings sits by the buttons there; its title bar already leaves room at the top.
+        var flyout = presentation == TimerPresentation.Flyout;
+        Footer.Visibility = flyout ? Visibility.Visible : Visibility.Collapsed;
+        SettingsButton.Visibility = flyout ? Visibility.Collapsed : Visibility.Visible;
+        Root.Padding = new Thickness(18, flyout ? 18 : 6, 18, 18);
 
         // The selected phase and the main button take the phase colour. Both controls read these brushes as theme
         // resources when their templates load; the palette then recolours the same brushes as the phase changes.
@@ -62,8 +78,14 @@ public sealed partial class TimerView : UserControl
         ActualThemeChanged += (_, _) => UpdatePalette();
     }
 
-    /// <summary>Raised when the Settings button is clicked.</summary>
+    /// <summary>Raised when a Settings button is clicked.</summary>
     public event Action? SettingsRequested;
+
+    /// <summary>The flyout's "Open window".</summary>
+    public event Action? OpenWindowRequested;
+
+    /// <summary>The flyout's power button.</summary>
+    public event Action? QuitRequested;
 
     /// <summary>
     /// Puts the keyboard focus on the dial, where Space starts the timer and the arrows set its length. A window never
@@ -134,9 +156,11 @@ public sealed partial class TimerView : UserControl
         }
 
         // Mouse mode starts and resets from the dial, so these two buttons go and the icon buttons are centred, as on
-        // the Mac. Otherwise the two share the width, except that "Start short break" needs more of it than "Stop".
+        // the Mac; in the flyout, which has none, the whole row goes. Otherwise the two share the width, except that
+        // "Start short break" needs more of it than "Stop".
         var mouse = _settings.UseMouseControls;
         var share = new GridLength(1, GridUnitType.Star);
+        Buttons.Visibility = mouse && _presentation == TimerPresentation.Flyout ? Visibility.Collapsed : Visibility.Visible;
         StartButton.Visibility = mouse ? Visibility.Collapsed : Visibility.Visible;
         ResetButton.Visibility = StartButton.Visibility;
         StartColumn.Width = mouse || state == TimerState.Finished ? GridLength.Auto : share;
@@ -216,6 +240,10 @@ public sealed partial class TimerView : UserControl
     private void OnResetSessions(object sender, RoutedEventArgs e) => _timer.ResetTodaysSessions();
 
     private void OnSettingsClicked(object sender, RoutedEventArgs e) => SettingsRequested?.Invoke();
+
+    private void OnOpenWindowClicked(object sender, RoutedEventArgs e) => OpenWindowRequested?.Invoke();
+
+    private void OnQuitClicked(object sender, RoutedEventArgs e) => QuitRequested?.Invoke();
 
     private void OnTaskChanged(object sender, TextChangedEventArgs e) => _timer.CurrentTask = TaskBox.Text;
 
