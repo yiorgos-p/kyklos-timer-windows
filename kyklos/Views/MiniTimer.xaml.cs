@@ -84,8 +84,7 @@ public sealed partial class MiniTimer : Window
             (int)Math.Ceiling(ContentHeight * scale)));
         var size = AppWindow.Size;
 
-        if (_settings.MiniTimerPos is { } saved
-            && DisplayArea.GetFromRect(new RectInt32(saved.X, saved.Y, size.Width, size.Height), DisplayAreaFallback.None) is not null)
+        if (_settings.MiniTimerPos is { } saved && WindowChrome.OnScreen(new PointInt32(saved.X, saved.Y), size))
         {
             AppWindow.Move(new PointInt32(saved.X, saved.Y));
             return;
@@ -140,7 +139,7 @@ public sealed partial class MiniTimer : Window
             return;
         }
 
-        _dragFrom = ScreenPoint(e);
+        _dragFrom = Cursor();
         _windowFrom = AppWindow.Position;
         _moved = false;
         _view.CapturePointer(e.Pointer);
@@ -155,7 +154,7 @@ public sealed partial class MiniTimer : Window
 
         // A hand that wobbles a little during a click or a double-click isn't dragging: a drag starts once the pointer
         // has gone as far as Windows says one does.
-        var to = ScreenPoint(e);
+        var to = Cursor();
         var dpi = PInvoke.GetDpiForWindow(_window);
         if (!_moved
             && Math.Abs(to.X - from.X) <= PInvoke.GetSystemMetricsForDpi(SYSTEM_METRICS_INDEX.SM_CXDRAG, dpi)
@@ -194,13 +193,13 @@ public sealed partial class MiniTimer : Window
         }
     }
 
-    /// <summary>Where the pointer is on screen: its place in the window, plus where the window is now, as it moves under it.</summary>
-    private PointInt32 ScreenPoint(PointerRoutedEventArgs e)
+    /// <summary>
+    /// Where the pointer is on screen, read from Windows rather than worked out from its place in the window plus where
+    /// the window is: the window keeps moving under the pointer as it's dragged, and those two needn't agree.
+    /// </summary>
+    private static PointInt32 Cursor()
     {
-        var point = e.GetCurrentPoint(null).Position;
-        var scale = _view.XamlRoot.RasterizationScale;
-        return new PointInt32(
-            AppWindow.Position.X + (int)Math.Round(point.X * scale),
-            AppWindow.Position.Y + (int)Math.Round(point.Y * scale));
+        PInvoke.GetCursorPos(out var point);
+        return new PointInt32(point.X, point.Y);
     }
 }
