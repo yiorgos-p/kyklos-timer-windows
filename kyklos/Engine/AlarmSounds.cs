@@ -27,6 +27,9 @@ public static class AlarmSounds
     /// <summary>A built-in sound's file, in the Sounds folder next to kyklos.exe.</summary>
     public static string BuiltInFile(string name) => Path.Combine(AppContext.BaseDirectory, "Sounds", name + ".wav");
 
+    public static bool IsBuiltInFile(string file) =>
+        BuiltIn.Any(name => string.Equals(file, BuiltInFile(name), StringComparison.OrdinalIgnoreCase));
+
     /// <summary>The files to try for the alarm: the chosen sound if it still opens, otherwise the default one.</summary>
     public static IReadOnlyList<string> Candidates(Settings settings)
     {

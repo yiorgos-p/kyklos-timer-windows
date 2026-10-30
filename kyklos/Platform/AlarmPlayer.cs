@@ -3,17 +3,24 @@ using Kyklos.Engine;
 using Microsoft.UI.Dispatching;
 using Windows.Media.Core;
 using Windows.Media.Playback;
+using Windows.Win32;
+using Windows.Win32.Media.Audio;
 
 namespace Kyklos.Platform;
 
 /// <summary>
-/// Plays the alarm, keeping the sound loaded only while it plays. Holding a player ready all the time costs memory for
-/// something that rings a few times a day; loading it on demand takes a few milliseconds.
+/// Plays the alarm. The sounds that come with kyklos play through Windows' plain sound playback, which every edition of
+/// Windows has; a sound of the user's own needs Windows' media playback, which Windows' N editions only have once the
+/// Media Feature Pack is added. A media player is made only while it plays: holding one ready all the time costs memory
+/// for something that rings a few times a day.
 /// </summary>
 public sealed class AlarmPlayer(DispatcherQueue queue) : IAlarmPlayer
 {
     private MediaPlayer? _player;
     private MediaSource? _source;
+
+    // Plain sound playback says nothing when a sound ends, so this goes off when it should have.
+    private DispatcherQueueTimer? _builtInEnd;
 
     public event Action? Ended;
 
@@ -25,6 +32,13 @@ public sealed class AlarmPlayer(DispatcherQueue queue) : IAlarmPlayer
 
     public void Stop()
     {
+        if (_builtInEnd is { } end)
+        {
+            _builtInEnd = null;
+            end.Stop();
+            PInvoke.PlaySound(null, null, 0);
+        }
+
         if (_player is { } player)
         {
             _player = null;
@@ -61,6 +75,16 @@ public sealed class AlarmPlayer(DispatcherQueue queue) : IAlarmPlayer
             return;
         }
 
+        if (AlarmSounds.IsBuiltInFile(files[index]))
+        {
+            if (!PlayBuiltIn(files[index]))
+            {
+                PlayFrom(files, index + 1);
+            }
+
+            return;
+        }
+
         MediaPlayer player;
         try
         {
@@ -73,8 +97,8 @@ public sealed class AlarmPlayer(DispatcherQueue queue) : IAlarmPlayer
         }
         catch (Exception e) when (e is COMException or UriFormatException)
         {
-            // Windows' N editions come without media playback until the Media Feature Pack is added: no sound then, but
-            // time's up still goes on.
+            // Windows' N editions come without media playback until the Media Feature Pack is added: the built-in sound
+            // that's next in line plays instead.
             Stop();
             PlayFrom(files, index + 1);
             return;
@@ -103,5 +127,30 @@ public sealed class AlarmPlayer(DispatcherQueue queue) : IAlarmPlayer
 
         _player = player;
         player.Play();
+    }
+
+    /// <summary>Plays one of kyklos's own sounds, or says it can't.</summary>
+    private bool PlayBuiltIn(string file)
+    {
+        if (WaveFile.Length(file) is not { } length
+            || !PInvoke.PlaySound(file, null, SND_FLAGS.SND_FILENAME | SND_FLAGS.SND_ASYNC | SND_FLAGS.SND_NODEFAULT))
+        {
+            return false;
+        }
+
+        var end = queue.CreateTimer();
+        end.Interval = length;
+        end.IsRepeating = false;
+        end.Tick += (sender, _) =>
+        {
+            if (sender == _builtInEnd)
+            {
+                Stop();
+                Ended?.Invoke();
+            }
+        };
+        _builtInEnd = end;
+        end.Start();
+        return true;
     }
 }

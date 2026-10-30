@@ -66,6 +66,10 @@ kyklos needs Windows 11. It's made and tested on Windows 11 on an x64 PC; report
 You only need to do this once. To find kyklos again, right-click `kyklos.exe` and choose Pin to Start, or turn on Start
 with Windows in its settings.
 
+The alarm sounds that come with kyklos play on every edition of Windows 11, including the N editions sold in Europe
+and Korea. A sound of your own plays through Windows' media playback, which the N editions only have once the Media
+Feature Pack is added (in Settings, under Optional features).
+
 kyklos keeps its settings in `%LOCALAPPDATA%\kyklos`. To remove it completely, turn off Start with Windows, quit it,
 and delete `kyklos.exe`, that folder and `%TEMP%\.net\kyklos`.
 

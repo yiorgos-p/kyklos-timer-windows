@@ -27,6 +27,7 @@ GetWindowThreadProcessId
 ITaskbarList3
 LoadImage
 MapVirtualKey
+PlaySound
 PostMessage
 RegisterClassEx
 RegisterHotKey
