@@ -1,11 +1,13 @@
-using System.Runtime.InteropServices;
 using Kyklos.Engine;
 using Microsoft.Windows.AppNotifications;
 using Microsoft.Windows.AppNotifications.Builder;
 
 namespace Kyklos.Platform;
 
-/// <summary>Posts kyklos's one notification, "time's up". It's silent: kyklos plays its own alarm.</summary>
+/// <summary>
+/// Posts kyklos's one notification, "time's up". It's silent: kyklos plays its own alarm. Whatever Windows refuses
+/// comes as one exception or another (each kind of error has its own), and none of them may stop the timer.
+/// </summary>
 public sealed class Notifier : INotifier
 {
     /// <summary>The same tag each time, so a new notification replaces the previous one.</summary>
@@ -31,7 +33,7 @@ public sealed class Notifier : INotifier
             AppNotificationManager.Default.Register("kyklos", new Uri(Path.Combine(AppContext.BaseDirectory, "Assets", "kyklos-256.png")));
             _registered = true;
         }
-        catch (COMException)
+        catch (Exception)
         {
             // Without notifications the alarm still rings; a timer shouldn't stop working over this.
         }
@@ -56,7 +58,7 @@ public sealed class Notifier : INotifier
 
             AppNotificationManager.Default.Show(notification);
         }
-        catch (Exception e) when (e is COMException or ArgumentException)
+        catch (Exception)
         {
             // Posted at time's up, with the alarm about to ring: a notification Windows won't take mustn't stop that.
         }
@@ -65,9 +67,18 @@ public sealed class Notifier : INotifier
     /// <summary>On quit, so a click on a notification left on screen launches kyklos again.</summary>
     public void Unregister()
     {
-        if (_registered)
+        if (!_registered)
+        {
+            return;
+        }
+
+        try
         {
             AppNotificationManager.Default.Unregister();
+        }
+        catch (Exception)
+        {
+            // kyklos is quitting all the same; it registers again at its next start.
         }
     }
 }

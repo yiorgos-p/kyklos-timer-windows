@@ -31,11 +31,26 @@ public sealed class NewDay : IDisposable
 
     public void Dispose() => _pending?.Dispose();
 
+    /// <summary>
+    /// The real time from now to the next midnight in this time zone. On the days the clocks change that's 23 or 25
+    /// hours, not the 24 the two local times are apart; and where the change skips midnight itself, the new day begins
+    /// at the first time there is.
+    /// </summary>
+    public static TimeSpan UntilMidnight(DateTime now, TimeZoneInfo zone)
+    {
+        var midnight = now.Date.AddDays(1);
+        while (zone.IsInvalidTime(midnight))
+        {
+            midnight = midnight.AddMinutes(15);
+        }
+
+        return TimeZoneInfo.ConvertTimeToUtc(midnight, zone) - TimeZoneInfo.ConvertTimeToUtc(now, zone);
+    }
+
     private void Arm()
     {
         _pending?.Dispose();
-        var now = _clock.LocalNow;
-        _pending = _scheduler.Schedule(now.Date.AddDays(1) - now + Margin, () =>
+        _pending = _scheduler.Schedule(UntilMidnight(_clock.LocalNow, TimeZoneInfo.Local) + Margin, () =>
         {
             _begun();
             Arm();

@@ -29,14 +29,16 @@ public class AlarmTests
         Assert.Single(test.Alarm.Plays);
     }
 
-    [Fact]
-    public void StaysQuietWhenASleepJumpsOvertimeAhead()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StaysQuietWhenASleepJumpsOvertimeAhead(bool timersPause)
     {
         using var test = new TestTimer();
         test.Finish();
         test.Advance(30);
 
-        test.Scheduler.Sleep(TimeSpan.FromMinutes(34.5));
+        test.Scheduler.Sleep(TimeSpan.FromMinutes(34.5), timersPause);
         test.Timer.CatchUp();
 
         Assert.Equal("+35:00", test.Timer.DisplayTime);

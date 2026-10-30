@@ -62,8 +62,7 @@ public class SessionTests
     {
         using var test = new TestTimer(settings =>
         {
-            settings.SessionsDay = "2026-10-29";
-            settings.SessionsToday = 3;
+            settings.SetSessions("2026-10-29", 3);
         });
         Assert.Equal(3, test.Timer.CompletedFocusToday);
 
@@ -104,6 +103,34 @@ public class SessionTests
 
         test.Timer.ResetTodaysSessions();
         Assert.Equal(TimerPhase.ShortBreak, test.Timer.NextPhase);
+    }
+
+    [Fact]
+    public void MidnightIsReallyAsFarAsTheClocksMakeIt()
+    {
+        // Summer time from the last Sunday in March at 03:00 to the last Sunday in October at 04:00, as in Athens.
+        var rule = TimeZoneInfo.AdjustmentRule.CreateAdjustmentRule(
+            DateTime.MinValue.Date, DateTime.MaxValue.Date, TimeSpan.FromHours(1),
+            TimeZoneInfo.TransitionTime.CreateFloatingDateRule(new DateTime(1, 1, 1, 3, 0, 0), 3, 5, DayOfWeek.Sunday),
+            TimeZoneInfo.TransitionTime.CreateFloatingDateRule(new DateTime(1, 1, 1, 4, 0, 0), 10, 5, DayOfWeek.Sunday));
+        var zone = TimeZoneInfo.CreateCustomTimeZone("Test", TimeSpan.FromHours(2), "Test", "Test", "Test summer", [rule]);
+
+        Assert.Equal(TimeSpan.FromMinutes(10), NewDay.UntilMidnight(new DateTime(2026, 10, 29, 23, 50, 0), zone));
+        Assert.Equal(TimeSpan.FromHours(23), NewDay.UntilMidnight(new DateTime(2026, 3, 29, 0, 0, 0), zone));
+        Assert.Equal(TimeSpan.FromHours(25), NewDay.UntilMidnight(new DateTime(2026, 10, 25, 0, 0, 0), zone));
+    }
+
+    [Fact]
+    public void WhereTheClocksSkipMidnightTheDayBeginsAfterIt()
+    {
+        // Summer time from 1 September at midnight: that day's clocks go from 23:59 straight to 01:00.
+        var rule = TimeZoneInfo.AdjustmentRule.CreateAdjustmentRule(
+            DateTime.MinValue.Date, DateTime.MaxValue.Date, TimeSpan.FromHours(1),
+            TimeZoneInfo.TransitionTime.CreateFixedDateRule(new DateTime(1, 1, 1, 0, 0, 0), 9, 1),
+            TimeZoneInfo.TransitionTime.CreateFixedDateRule(new DateTime(1, 1, 1, 0, 0, 0), 4, 1));
+        var zone = TimeZoneInfo.CreateCustomTimeZone("Test", TimeSpan.FromHours(-4), "Test", "Test", "Test summer", [rule]);
+
+        Assert.Equal(TimeSpan.FromHours(1), NewDay.UntilMidnight(new DateTime(2026, 8, 31, 23, 0, 0), zone));
     }
 
     [Theory]

@@ -440,12 +440,15 @@ public sealed class TimerViewModel : INotifyPropertyChanged
         _lastAlarmMinute = 0;
         State = TimerState.Finished;
 
+        // The alarm first: counting the session writes the settings file, which a slow disk can hold up. The notification
+        // comes after the count, which decides whether a long break is next.
+        PlayAlarmSound();
+
         if (Phase == TimerPhase.Focus)
         {
             RecordFocusSession();
         }
 
-        PlayAlarmSound();
         PostFinishedNotification();
         Tick();
     }
@@ -491,8 +494,7 @@ public sealed class TimerViewModel : INotifyPropertyChanged
     private void SaveTodaysSessions(int count)
     {
         CompletedFocusToday = count;
-        _settings.SessionsDay = TodayKey;
-        _settings.SessionsToday = count;
+        _settings.SetSessions(TodayKey, count);
     }
 
     // Alarm

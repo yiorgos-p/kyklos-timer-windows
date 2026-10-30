@@ -56,10 +56,23 @@ sealed class FakeScheduler(FakeClock clock) : IScheduler
         clock.Advance(end - clock.Now);
     }
 
-    /// <summary>A sleep: time jumps ahead with nothing running, then whatever came due runs late, as after a wake.</summary>
-    public void Sleep(TimeSpan time)
+    /// <summary>
+    /// A sleep: time jumps ahead with nothing running. On waking, whatever came due runs late; or, if the timers stopped
+    /// counting while the PC slept, nothing comes due, and only the timer catching up brings it up to date.
+    /// </summary>
+    public void Sleep(TimeSpan time, bool timersPause = false)
     {
         clock.Advance(time);
+
+        if (timersPause)
+        {
+            foreach (var entry in _entries)
+            {
+                entry.Due += time;
+            }
+
+            return;
+        }
 
         foreach (var entry in _entries.Where(entry => entry.Due <= clock.Now).ToList())
         {
@@ -71,7 +84,7 @@ sealed class FakeScheduler(FakeClock clock) : IScheduler
 
     private sealed class Entry(TimeSpan due, Action action, List<Entry> owner) : IDisposable
     {
-        public TimeSpan Due { get; } = due;
+        public TimeSpan Due { get; set; } = due;
 
         public Action Action { get; } = action;
 

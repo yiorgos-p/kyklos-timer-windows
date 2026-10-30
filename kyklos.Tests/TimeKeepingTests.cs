@@ -142,27 +142,31 @@ public class TimeKeepingTests
         Assert.Equal("+125:03", test.Timer.DisplayTime);
     }
 
-    [Fact]
-    public void CatchesUpOnWake()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CatchesUpOnWake(bool timersPause)
     {
         using var test = new TestTimer();
         test.Timer.SetDuration(5);
         test.Timer.StartTimer();
 
-        test.Scheduler.Sleep(TimeSpan.FromMinutes(2));
+        test.Scheduler.Sleep(TimeSpan.FromMinutes(2), timersPause);
         test.Timer.CatchUp();
 
         Assert.Equal("03:00", test.Timer.DisplayTime);
     }
 
-    [Fact]
-    public void SleepingThroughTimesUpRingsOnWakeAndThenAtTheNextFullMinute()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SleepingThroughTimesUpRingsOnWakeAndThenAtTheNextFullMinute(bool timersPause)
     {
         using var test = new TestTimer();
         test.Timer.SetDuration(2);
         test.Timer.StartTimer();
 
-        test.Scheduler.Sleep(TimeSpan.FromMinutes(5));
+        test.Scheduler.Sleep(TimeSpan.FromMinutes(5), timersPause);
         test.Timer.CatchUp();
 
         Assert.Equal(TimerState.Finished, test.Timer.State);

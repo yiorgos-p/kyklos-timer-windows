@@ -27,6 +27,9 @@ public sealed class Settings : INotifyPropertyChanged
     /// <summary>How many times a busy settings file is tried, a tenth of a second apart, before it counts as unreadable.</summary>
     private const int ReadAttempts = 20;
 
+    /// <summary>The same when it's written, but fewer times and closer together: kyklos waits meanwhile.</summary>
+    private const int SaveAttempts = 5;
+
     private readonly JsonObject _values;
 
     public Settings(string folder)
@@ -70,18 +73,17 @@ public sealed class Settings : INotifyPropertyChanged
     }
 
     /// <summary>Focus sessions finished on <see cref="SessionsDay"/>.</summary>
-    public int SessionsToday
-    {
-        get => Math.Max(0, GetInt("sessionsToday") ?? 0);
-        set => Set("sessionsToday", value);
-    }
+    public int SessionsToday => Math.Max(0, GetInt("sessionsToday") ?? 0);
 
     /// <summary>The day <see cref="SessionsToday"/> counts, like "2026-10-29".</summary>
-    public string SessionsDay
-    {
-        get => GetString("sessionsDay") ?? "";
-        set => Set("sessionsDay", value);
-    }
+    public string SessionsDay => GetString("sessionsDay") ?? "";
+
+    /// <summary>
+    /// The count and its day, written together: written one after the other, a crash between the two could leave
+    /// yesterday's count on today.
+    /// </summary>
+    public void SetSessions(string day, int count) =>
+        Set([("sessionsDay", day), ("sessionsToday", count)], nameof(SessionsToday));
 
     public bool RepeatAlarm
     {
@@ -302,26 +304,37 @@ public sealed class Settings : INotifyPropertyChanged
         var file = Path.Combine(Folder, FileName);
         var temporary = file + ".tmp";
 
-        try
+        for (var attempt = 1; ; attempt++)
         {
-            Directory.CreateDirectory(Folder);
-
-            using (var stream = File.Create(temporary))
+            try
             {
-                using (var writer = new Utf8JsonWriter(stream, WriterOptions))
+                Directory.CreateDirectory(Folder);
+
+                using (var stream = File.Create(temporary))
                 {
-                    _values.WriteTo(writer);
+                    using (var writer = new Utf8JsonWriter(stream, WriterOptions))
+                    {
+                        _values.WriteTo(writer);
+                    }
+
+                    stream.Flush(flushToDisk: true);
                 }
 
-                stream.Flush(flushToDisk: true);
+                File.Move(temporary, file, overwrite: true);
+                return;
             }
-
-            File.Move(temporary, file, overwrite: true);
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            // A timer shouldn't stop working because a settings file can't be written. The values stay in memory,
-            // and the next change tries again.
+            catch (IOException) when (attempt < SaveAttempts)
+            {
+                // Held for a moment by another program, as when it's read. The last change before Quit (the task typed,
+                // where the window was) has no next change to try again.
+                Thread.Sleep(50);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                // A timer shouldn't stop working because a settings file can't be written. The values stay in memory,
+                // and the next change tries again.
+                return;
+            }
         }
     }
 }
