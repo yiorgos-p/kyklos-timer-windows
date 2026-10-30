@@ -36,11 +36,14 @@ SetForegroundWindow
 SetProcessInformation
 SetWindowLong
 SetWindowSubclass
+SetWinEventHook
 Shell_NotifyIcon
 Shell_NotifyIconGetRect
 TaskbarList
+UnhookWinEvent
 UnregisterHotKey
 UnregisterPowerSettingNotification
+EVENT_SYSTEM_FOREGROUND
 GUID_CONSOLE_DISPLAY_STATE
 INFINITE
 PBT_APMRESUMEAUTOMATIC
@@ -54,6 +57,7 @@ SC_MAXIMIZE
 SC_RESTORE
 SIZE_MAXIMIZED
 MINMAXINFO
+WINEVENT_OUTOFCONTEXT
 WM_APP
 WM_CONTEXTMENU
 WM_ENDSESSION

@@ -27,8 +27,11 @@ public sealed partial class TrayFlyout : Window
     private const double Margin = 12;
 
     private readonly TimerView _view;
+    private readonly HWND _window;
     private RECT? _icon;
     private PointInt32 _click;
+    private ForegroundChanges? _foreground;
+    private bool _closed;
 
     public TrayFlyout(TimerViewModel timer, Settings settings)
     {
@@ -44,7 +47,8 @@ public sealed partial class TrayFlyout : Window
         presenter.IsAlwaysOnTop = true;
         AppWindow.SetPresenter(presenter);
         AppWindow.IsShownInSwitchers = false;
-        WindowChrome.RoundCorners(Win32Interop.GetWindowFromWindowId(AppWindow.Id));
+        _window = new HWND(Win32Interop.GetWindowFromWindowId(AppWindow.Id));
+        WindowChrome.RoundCorners(_window);
 
         if (!new UISettings().AnimationsEnabled)
         {
@@ -52,7 +56,6 @@ public sealed partial class TrayFlyout : Window
             Root.TranslationTransition = null;
         }
 
-        // Light dismiss: clicking anywhere else closes it.
         Activated += OnActivated;
         Closed += OnClosed;
 
@@ -69,7 +72,7 @@ public sealed partial class TrayFlyout : Window
 
     public TimerView View => _view;
 
-    private double Scale => PInvoke.GetDpiForWindow(new HWND(Win32Interop.GetWindowFromWindowId(AppWindow.Id))) / 96.0;
+    private double Scale => PInvoke.GetDpiForWindow(_window) / 96.0;
 
     /// <summary>Opens over the tray icon (or the point clicked, if Windows can't say where the icon is).</summary>
     internal void Open(RECT? icon, PointInt32 click, bool byKeyboard)
@@ -88,6 +91,19 @@ public sealed partial class TrayFlyout : Window
         Activate();
         Root.Opacity = 1;
         Root.Translation = Vector3.Zero;
+
+        // Light dismiss: clicking anywhere else closes it. It's told so when it loses the front, but only if it had it:
+        // Windows lets an app come to the front as its tray icon is clicked, which WinUI's Activate doesn't always use,
+        // so it's asked for here; and should the flyout still be left behind, any other window coming to the front
+        // closes it.
+        PInvoke.SetForegroundWindow(_window);
+        _foreground = new ForegroundChanges(window =>
+        {
+            if (window != _window)
+            {
+                DispatcherQueue.TryEnqueue(Dismiss);
+            }
+        });
 
         // A flyout never opens with the cursor in the task field, which would swallow Space.
         DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, byKeyboard ? _view.FocusDialByKeyboard : _view.FocusDial);
@@ -139,6 +155,15 @@ public sealed partial class TrayFlyout : Window
     {
         if (e.WindowActivationState == WindowActivationState.Deactivated)
         {
+            Dismiss();
+        }
+    }
+
+    /// <summary>Closes it, unless something else just has: losing the front and another window taking it come together.</summary>
+    private void Dismiss()
+    {
+        if (!_closed)
+        {
             Close();
         }
     }
@@ -147,6 +172,8 @@ public sealed partial class TrayFlyout : Window
     // never be freed. Each of kyklos's windows lets go of its own when it closes.
     private void OnClosed(object sender, WindowEventArgs e)
     {
+        _closed = true;
+        _foreground?.Dispose();
         Activated -= OnActivated;
         Closed -= OnClosed;
     }
@@ -155,7 +182,7 @@ public sealed partial class TrayFlyout : Window
     {
         if (e.Key == Windows.System.VirtualKey.Escape)
         {
-            Close();
+            Dismiss();
             e.Handled = true;
         }
     }
