@@ -203,6 +203,13 @@ public sealed partial class DialControl : UserControl
         }
     }
 
+    // A press Windows took back (a touch that turned into something else, a pen out of range) wasn't a click.
+    private void OnFaceCanceled(object sender, PointerRoutedEventArgs e)
+    {
+        Face.ReleasePointerCapture(e.Pointer);
+        EndPointer();
+    }
+
     private void OnFaceCaptureLost(object sender, PointerRoutedEventArgs e) => EndPointer();
 
     private void EndPointer()

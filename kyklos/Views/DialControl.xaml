@@ -12,7 +12,7 @@
     <Grid
         x:Name="Face"
         Background="Transparent"
-        PointerCanceled="OnFaceReleased"
+        PointerCanceled="OnFaceCanceled"
         PointerCaptureLost="OnFaceCaptureLost"
         PointerExited="OnFaceExited"
         PointerMoved="OnFaceMoved"

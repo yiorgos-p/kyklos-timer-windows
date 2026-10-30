@@ -24,6 +24,9 @@ public sealed class Settings : INotifyPropertyChanged
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
+    /// <summary>How many times a busy settings file is tried, a tenth of a second apart, before it counts as unreadable.</summary>
+    private const int ReadAttempts = 20;
+
     private readonly JsonObject _values;
 
     public Settings(string folder)
@@ -268,14 +271,28 @@ public sealed class Settings : INotifyPropertyChanged
 
     private static JsonObject Read(string file)
     {
-        try
+        for (var attempt = 1; ; attempt++)
         {
-            return JsonNode.Parse(File.ReadAllText(file)) as JsonObject ?? new JsonObject();
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)
-        {
-            // No file yet (the first launch), or one that can't be read: start from the defaults.
-            return new JsonObject();
+            try
+            {
+                return JsonNode.Parse(File.ReadAllText(file)) as JsonObject ?? new JsonObject();
+            }
+            catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException)
+            {
+                // No file yet: the first launch.
+                return new JsonObject();
+            }
+            catch (IOException) when (attempt < ReadAttempts)
+            {
+                // Another program (a backup, a virus scan) has it open for a moment, as can happen at sign-in. Starting
+                // from the defaults would write them over the real settings at the first change, so wait and try again.
+                Thread.Sleep(100);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)
+            {
+                // One that can't be read even so, or isn't settings at all: start from the defaults.
+                return new JsonObject();
+            }
         }
     }
 

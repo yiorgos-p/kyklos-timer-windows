@@ -1,11 +1,15 @@
 using System.ComponentModel;
 using Kyklos.Engine;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.System;
+using Windows.UI.Core;
 using Windows.UI.ViewManagement;
 
 namespace Kyklos.Views;
@@ -92,6 +96,9 @@ public sealed partial class TimerView : UserControl
     /// </summary>
     public void FocusDial() => Dial.Focus(FocusState.Pointer);
 
+    /// <summary>The same, with the focus ring, when the flyout was opened from the keyboard: the ring shows where keys go.</summary>
+    public void FocusDialByKeyboard() => Dial.Focus(FocusState.Keyboard);
+
     /// <summary>Stops following the timer while the window it's in is hidden, so a hidden window costs nothing.</summary>
     public void Suspend() => StopFollowing();
 
@@ -162,6 +169,9 @@ public sealed partial class TimerView : UserControl
         PhaseSwitcher.Opacity = zen ? 0 : 1;
         PhaseSwitcher.IsEnabled = !zen;
         ZenLabel.Opacity = zen ? 1 : 0;
+
+        // Faded out rather than taken away, so it doesn't jump; screen readers mustn't read it out meanwhile.
+        AutomationProperties.SetAccessibilityView(ZenTitle, zen ? AccessibilityView.Content : AccessibilityView.Raw);
         if (_zenLabelShows != _timer.Phase)
         {
             _zenLabelShows = _timer.Phase;
@@ -285,13 +295,15 @@ public sealed partial class TimerView : UserControl
     }
 
     /// <summary>
-    /// Space starts and pauses the timer, as the main button's shortcut, unless it's being typed. As on the Mac it goes
-    /// with that button, so it does nothing in mouse mode, where the button is hidden.
+    /// Space starts and pauses the timer, as the main button's shortcut, unless it's being typed or the focus is on
+    /// something Space presses itself: a button, a phase, a switch. As on the Mac it goes with that button, so it does
+    /// nothing in mouse mode, where the button is hidden, and it's plain Space only, once per press.
     /// </summary>
     private void OnPreviewKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (e.Key != VirtualKey.Space || StartButton.Visibility != Visibility.Visible
-            || FocusManager.GetFocusedElement(XamlRoot) is TextBox)
+        if (e.Key != VirtualKey.Space || e.KeyStatus.WasKeyDown || StartButton.Visibility != Visibility.Visible
+            || IsDown(VirtualKey.Control) || IsDown(VirtualKey.Shift) || IsDown(VirtualKey.Menu)
+            || FocusManager.GetFocusedElement(XamlRoot) is TextBox or ButtonBase or SelectorItem or ToggleSwitch)
         {
             return;
         }
@@ -299,6 +311,9 @@ public sealed partial class TimerView : UserControl
         _timer.ToggleTimer();
         e.Handled = true;
     }
+
+    private static bool IsDown(VirtualKey key) =>
+        InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(CoreVirtualKeyStates.Down);
 
     private void OnPointerPressedAnywhere(object sender, PointerRoutedEventArgs e)
     {

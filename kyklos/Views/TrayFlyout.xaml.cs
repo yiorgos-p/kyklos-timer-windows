@@ -72,7 +72,7 @@ public sealed partial class TrayFlyout : Window
     private double Scale => PInvoke.GetDpiForWindow(new HWND(Win32Interop.GetWindowFromWindowId(AppWindow.Id))) / 96.0;
 
     /// <summary>Opens over the tray icon (or the point clicked, if Windows can't say where the icon is).</summary>
-    internal void Open(RECT? icon, PointInt32 click)
+    internal void Open(RECT? icon, PointInt32 click, bool byKeyboard)
     {
         _icon = icon;
         _click = click;
@@ -90,7 +90,7 @@ public sealed partial class TrayFlyout : Window
         Root.Translation = Vector3.Zero;
 
         // A flyout never opens with the cursor in the task field, which would swallow Space.
-        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, _view.FocusDial);
+        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, byKeyboard ? _view.FocusDialByKeyboard : _view.FocusDial);
     }
 
     private PointInt32 Anchor => _icon is { } icon
@@ -115,7 +115,8 @@ public sealed partial class TrayFlyout : Window
         var screen = display.OuterBounds;
         var margin = (int)Math.Round(Margin * scale);
 
-        var x = Math.Clamp(Anchor.X - size.Width / 2, work.X + margin, work.X + work.Width - size.Width - margin);
+        // Not Math.Clamp, which fails on a screen too small for the flyout; there, its top left corner stays on screen.
+        var x = Math.Max(work.X + margin, Math.Min(Anchor.X - size.Width / 2, work.X + work.Width - size.Width - margin));
         var y = work.Y + work.Height - size.Height - margin;
 
         if (work.Y > screen.Y)
@@ -131,7 +132,7 @@ public sealed partial class TrayFlyout : Window
             x = work.X + work.Width - size.Width - margin;
         }
 
-        WindowChrome.MoveClient(AppWindow, new PointInt32(x, y));
+        WindowChrome.MoveClient(AppWindow, new PointInt32(x, Math.Max(y, work.Y + margin)));
     }
 
     private void OnActivated(object sender, WindowActivatedEventArgs e)

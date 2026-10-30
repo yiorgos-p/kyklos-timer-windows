@@ -57,6 +57,7 @@ public sealed partial class MainWindow : Window
         {
             if (message == TaskbarButtonCreated)
             {
+                _progress.Forget();
                 UpdateProgress();
             }
 

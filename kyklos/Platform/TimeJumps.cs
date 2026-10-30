@@ -47,6 +47,13 @@ internal sealed class TimeJumps : IDisposable
             _ => false,
         };
 
+        // A new time zone comes with WM_TIMECHANGE too, and .NET keeps the old one until told: the local time, when the
+        // session ends and when midnight comes would stay on it.
+        if (message == PInvoke.WM_TIMECHANGE)
+        {
+            TimeZoneInfo.ClearCachedData();
+        }
+
         if (jumped)
         {
             Happened?.Invoke();

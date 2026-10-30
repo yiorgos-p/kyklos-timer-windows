@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Input;
 using Windows.Graphics;
 using Windows.Win32;
 using Windows.Win32.Foundation;
+using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Kyklos.Views;
 
@@ -152,7 +153,17 @@ public sealed partial class MiniTimer : Window
             return;
         }
 
+        // A hand that wobbles a little during a click or a double-click isn't dragging: a drag starts once the pointer
+        // has gone as far as Windows says one does.
         var to = ScreenPoint(e);
+        var dpi = PInvoke.GetDpiForWindow(_window);
+        if (!_moved
+            && Math.Abs(to.X - from.X) <= PInvoke.GetSystemMetricsForDpi(SYSTEM_METRICS_INDEX.SM_CXDRAG, dpi)
+            && Math.Abs(to.Y - from.Y) <= PInvoke.GetSystemMetricsForDpi(SYSTEM_METRICS_INDEX.SM_CYDRAG, dpi))
+        {
+            return;
+        }
+
         var position = new PointInt32(_windowFrom.X + to.X - from.X, _windowFrom.Y + to.Y - from.Y);
         if (position != AppWindow.Position)
         {

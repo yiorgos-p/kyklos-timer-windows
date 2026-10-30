@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Globalization;
+using System.Runtime.InteropServices;
 using Kyklos.Engine;
 using Kyklos.Platform;
 using Kyklos.Views;
@@ -81,12 +83,18 @@ public partial class App : Application
             _newDay.Recheck();
         };
 
-        // Signing out or shutting down ends kyklos without a Quit, so keep the task typed then too.
-        _system.Received += (message, wParam, _) =>
+        _system.Received += (message, wParam, lParam) =>
         {
+            // Signing out or shutting down ends kyklos without a Quit, so keep the task typed then too.
             if (message == PInvoke.WM_ENDSESSION && wParam != 0)
             {
                 _timer.SaveTask();
+            }
+
+            // Windows writes times another way now (12 or 24 hours), which .NET keeps until told: "ends 14:35" follows.
+            if (message == PInvoke.WM_SETTINGCHANGE && lParam != 0 && Marshal.PtrToStringUni(lParam) == "intl")
+            {
+                CultureInfo.CurrentCulture.ClearCachedData();
             }
         };
 
@@ -174,7 +182,7 @@ public partial class App : Application
         }
     }
 
-    private void ToggleFlyout(PointInt32 click)
+    private void ToggleFlyout(PointInt32 click, bool byKeyboard)
     {
         if (_flyout is not null || Environment.TickCount64 - _flyoutClosedAt < FlyoutReopenDelay)
         {
@@ -199,7 +207,7 @@ public partial class App : Application
         flyout.View.SettingsRequested += ShowSettings;
         flyout.View.QuitRequested += Quit;
         _flyout = flyout;
-        flyout.Open(_tray.Bounds, click);
+        flyout.Open(_tray.Bounds, click, byKeyboard);
     }
 
     private void ShowTrayMenu(PointInt32 point, bool byKeyboard) =>

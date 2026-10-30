@@ -34,8 +34,8 @@ internal sealed class TrayIcon : IDisposable
         Add();
     }
 
-    /// <summary>A left click, or Enter or Space while the icon has the keyboard: where on screen.</summary>
-    public event Action<PointInt32>? Selected;
+    /// <summary>A left click, or Enter or Space while the icon has the keyboard: where on screen, and whether it was the keyboard.</summary>
+    public event Action<PointInt32, bool>? Selected;
 
     /// <summary>A right click, or the menu key: where the menu should open, and whether it was the keyboard.</summary>
     public event Action<PointInt32, bool>? MenuRequested;
@@ -146,10 +146,11 @@ internal sealed class TrayIcon : IDisposable
 
         var point = new PointInt32((short)(wParam & 0xFFFF), (short)((wParam >> 16) & 0xFFFF));
 
-        switch ((uint)(lParam & 0xFFFF))
+        var notification = (uint)(lParam & 0xFFFF);
+        switch (notification)
         {
             case PInvoke.NIN_SELECT or KeySelect:
-                Selected?.Invoke(point);
+                Selected?.Invoke(point, notification == KeySelect);
                 break;
             case PInvoke.WM_CONTEXTMENU:
                 MenuRequested?.Invoke(point, !IsPointerAt(point));

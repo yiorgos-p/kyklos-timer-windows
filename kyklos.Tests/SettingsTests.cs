@@ -48,6 +48,22 @@ public sealed class SettingsTests : IDisposable
     }
 
     [Fact]
+    public async Task AFileAnotherProgramHasOpenForAMomentIsReadOnceItsFree()
+    {
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(SettingsFile, """{ "standardTimer": 45 }""");
+
+        // Held without sharing, as a backup or virus scan might, for half a second.
+        var held = new FileStream(SettingsFile, FileMode.Open, FileAccess.Read, FileShare.None);
+        var release = Task.Delay(500).ContinueWith(_ => held.Dispose());
+
+        var settings = new Settings(_folder);
+        await release;
+
+        Assert.Equal(45, settings.StandardTimer);
+    }
+
+    [Fact]
     public void OutOfRangeValuesAreClampedNeverRejected()
     {
         Directory.CreateDirectory(_folder);
