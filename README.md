@@ -3,7 +3,7 @@
 kyklos (KEE-klos, Greek for both *circle* and *cycle*) is a free, minimal Pomodoro timer for Windows 11, in its own
 window and in the system tray. It's designed with ADHD in mind, to keep a wandering mind on one thing at a time.
 
-It's the same app as [kyklos for Mac](https://github.com/yiorgos-p/kyklos-timer), made for Windows.
+It's the same app as [kyklos for Mac](https://github.com/yiorgos-p/kyklos-timer-mac), made for Windows.
 
 <p align="center">
   <picture>
