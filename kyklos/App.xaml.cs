@@ -117,6 +117,10 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// The window is built once and then hidden and shown, unlike the other surfaces: WinUI never frees a window with
+    /// its own title bar, so one thrown away each time would leave a megabyte or two behind.
+    /// </summary>
     private void ShowMainWindow()
     {
         _flyout?.Close();
@@ -124,18 +128,9 @@ public partial class App : Application
 
         if (_mainWindow is null)
         {
-            var window = new MainWindow(_timer, _settings);
-            window.Closed += (_, _) =>
-            {
-                // The close button: the window is gone, and kyklos goes on in the tray.
-                if (_mainWindow == window)
-                {
-                    _mainWindow = null;
-                }
-            };
-            window.View.SettingsRequested += ShowSettings;
-            window.View.MiniTimerRequested += ShowMiniTimer;
-            _mainWindow = window;
+            _mainWindow = new MainWindow(_timer, _settings);
+            _mainWindow.View.SettingsRequested += ShowSettings;
+            _mainWindow.View.MiniTimerRequested += ShowMiniTimer;
         }
 
         _mainWindow.BringToFront();
@@ -145,23 +140,23 @@ public partial class App : Application
     private void ShowMiniTimer()
     {
         _flyout?.Close();
-
-        if (_mainWindow is { } window)
-        {
-            _mainWindow = null;
-            window.Close();
-        }
+        _mainWindow?.Hide();
 
         if (_miniTimer is null)
         {
             var miniTimer = new MiniTimer(_timer, _settings);
-            miniTimer.Closed += (_, _) =>
+
+            // Its ×: it comes back when the next session starts, and the tray opens the window meanwhile. (The handler
+            // finds the window through sender: WinUI keeps a window's handlers after it closes, so one holding on to the
+            // window would keep it from ever being freed.)
+            miniTimer.Closed += (sender, _) =>
             {
-                // Its ×: it comes back when the next session starts, and the tray opens the window meanwhile.
-                if (_miniTimer == miniTimer)
+                if (ReferenceEquals(_miniTimer, sender))
                 {
                     _miniTimer = null;
                 }
+
+                ClosedWindows.LetGo();
             };
             miniTimer.OpenWindowRequested += ShowMainWindow;
             _miniTimer = miniTimer;
@@ -190,8 +185,7 @@ public partial class App : Application
         // The window gives way, as on the Mac it fades back into the menu bar.
         if (_mainWindow is { IsShowing: true } window)
         {
-            _mainWindow = null;
-            window.FadeOutAndClose();
+            window.Hide();
         }
 
         var flyout = new TrayFlyout(_timer, _settings);
@@ -199,6 +193,7 @@ public partial class App : Application
         {
             _flyout = null;
             _flyoutClosedAt = Environment.TickCount64;
+            ClosedWindows.LetGo();
         };
         flyout.View.OpenWindowRequested += ShowMainWindow;
         flyout.View.SettingsRequested += ShowSettings;
@@ -212,19 +207,8 @@ public partial class App : Application
 
     private void ShowSettings()
     {
-        if (_settingsWindow is null)
-        {
-            var window = new SettingsWindow(_timer, _settings, _hotKey);
-            window.Closed += (_, _) =>
-            {
-                if (_settingsWindow == window)
-                {
-                    _settingsWindow = null;
-                }
-            };
-            _settingsWindow = window;
-        }
-
+        // Like the main window, built once and hidden when closed: it has its own title bar too.
+        _settingsWindow ??= new SettingsWindow(_timer, _settings, _hotKey);
         _settingsWindow.BringToFront();
     }
 

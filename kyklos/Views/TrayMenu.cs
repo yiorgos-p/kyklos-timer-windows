@@ -37,14 +37,18 @@ internal static class TrayMenu
             return true;
         });
 
-        var presenter = OverlappedPresenter.Create();
+        // A context menu's presenter, here without even its border.
+        var presenter = OverlappedPresenter.CreateForContextMenu();
         presenter.SetBorderAndTitleBar(false, false);
-        presenter.IsResizable = false;
         presenter.IsAlwaysOnTop = true;
         host.AppWindow.SetPresenter(presenter);
         host.AppWindow.IsShownInSwitchers = false;
         host.AppWindow.MoveAndResize(new RectInt32(point.X, point.Y, 1, 1));
-        host.Closed += (_, _) => messages.Dispose();
+        host.Closed += (_, _) =>
+        {
+            messages.Dispose();
+            ClosedWindows.LetGo();
+        };
 
         var finished = timer.State == TimerState.Finished;
         var main = new MenuFlyoutItem

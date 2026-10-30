@@ -92,20 +92,46 @@ public sealed partial class TimerView : UserControl
     /// </summary>
     public void FocusDial() => Dial.Focus(FocusState.Pointer);
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    /// <summary>Stops following the timer while the window it's in is hidden, so a hidden window costs nothing.</summary>
+    public void Suspend() => StopFollowing();
+
+    /// <summary>Shown again, it catches up and follows the timer again.</summary>
+    public void Resume()
     {
+        if (IsLoaded)
+        {
+            Follow();
+        }
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e) => Follow();
+
+    // The timer outlives this view (the flyout is thrown away when it closes), so let go of it.
+    private void OnUnloaded(object sender, RoutedEventArgs e) => StopFollowing();
+
+    private void Follow()
+    {
+        if (_systemColors is not null)
+        {
+            return;
+        }
+
         _timer.PropertyChanged += OnChanged;
         _settings.PropertyChanged += OnChanged;
         _systemColors = Palette.WatchSystemColors(DispatcherQueue, UpdatePalette);
         Refresh();
     }
 
-    // The timer outlives this view (windows are thrown away when hidden), so let go of it.
-    private void OnUnloaded(object sender, RoutedEventArgs e)
+    private void StopFollowing()
     {
+        if (_systemColors is null)
+        {
+            return;
+        }
+
         _timer.PropertyChanged -= OnChanged;
         _settings.PropertyChanged -= OnChanged;
-        _systemColors?.Dispose();
+        _systemColors.Dispose();
         _systemColors = null;
     }
 

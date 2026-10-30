@@ -16,6 +16,9 @@ public sealed partial class WindowTitleBar : UserControl
 {
     private int _iconSize;
 
+    /// <summary>The window it's the title bar of, until that closes.</summary>
+    private Window? _window;
+
     public WindowTitleBar()
     {
         InitializeComponent();
@@ -56,31 +59,43 @@ public sealed partial class WindowTitleBar : UserControl
     {
         window.ExtendsContentIntoTitleBar = true;
         window.SetTitleBar(this);
-
-        // A closed window can still report being activated, when there's no title bar left to update.
-        var open = true;
-        window.Closed += (_, _) => open = false;
+        _window = window;
 
         SizeChanged += (_, _) =>
         {
-            if (open)
+            if (_window is { } open)
             {
-                Update(window.AppWindow);
+                Update(open.AppWindow);
             }
         };
-        window.Activated += (_, e) =>
+        window.Activated += OnWindowActivated;
+        window.Closed += OnWindowClosed;
+    }
+
+    private void OnWindowActivated(object sender, WindowActivatedEventArgs e)
+    {
+        if (_window is not { } window)
         {
-            if (!open)
-            {
-                return;
-            }
+            return;
+        }
 
-            var active = e.WindowActivationState != WindowActivationState.Deactivated;
-            VisualStateManager.GoToState(this, active ? "Active" : "Inactive", false);
+        var active = e.WindowActivationState != WindowActivationState.Deactivated;
+        VisualStateManager.GoToState(this, active ? "Active" : "Inactive", false);
 
-            // The caption buttons' room is only known once the window is up.
-            Update(window.AppWindow);
-        };
+        // The caption buttons' room is only known once the window is up.
+        Update(window.AppWindow);
+    }
+
+    // There's no title bar left to update once the window has closed. Its handlers go too: WinUI keeps a window's
+    // handlers after it has closed, and these refer to the window, so it would never be freed.
+    private void OnWindowClosed(object sender, WindowEventArgs e)
+    {
+        if (_window is { } window)
+        {
+            _window = null;
+            window.Activated -= OnWindowActivated;
+            window.Closed -= OnWindowClosed;
+        }
     }
 
     private void Update(AppWindow window)

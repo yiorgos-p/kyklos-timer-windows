@@ -58,38 +58,26 @@ public sealed partial class SettingsWindow : Window
         };
 
         _settings.PropertyChanged += OnSettingChanged;
-        Activated += (_, e) =>
-        {
-            if (e.WindowActivationState == WindowActivationState.Deactivated)
-            {
-                return;
-            }
-
-            if (Page.Content is GeneralSettings general)
-            {
-                general.RefreshNotifications();
-            }
-
-            // WinUI gives a new window's first control the focus as if by keyboard, with a focus ring; the page tab
-            // takes it as if clicked instead, as when Settings is opened with the mouse.
-            if (!_focusedOnce)
-            {
-                _focusedOnce = true;
-                DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => (Pages.SelectedItem as Control)?.Focus(FocusState.Pointer));
-            }
-        };
-        Closed += (_, _) =>
-        {
-            _settings.PropertyChanged -= OnSettingChanged;
-            _messages.Dispose();
-
-            // Lets the page go, which stops a sound it's playing or a shortcut it's recording.
-            Page.Content = null;
-        };
+        AppWindow.Closing += OnClosing;
+        Activated += OnActivated;
+        Closed += OnClosed;
     }
 
+    /// <summary>Brings it up, on General again if it was closed.</summary>
     public void BringToFront()
     {
+        if (Page.Content is null)
+        {
+            if (Pages.SelectedItem == Pages.Items[0])
+            {
+                ShowPage(0);
+            }
+            else
+            {
+                Pages.SelectedItem = Pages.Items[0];
+            }
+        }
+
         if (_presenter.State == OverlappedPresenterState.Minimized)
         {
             _presenter.Restore();
@@ -106,9 +94,52 @@ public sealed partial class SettingsWindow : Window
         }
     }
 
-    private void OnPageSelected(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
+    private void OnActivated(object sender, WindowActivatedEventArgs e)
     {
-        Page.Content = sender.Items.IndexOf(sender.SelectedItem) switch
+        if (e.WindowActivationState == WindowActivationState.Deactivated)
+        {
+            return;
+        }
+
+        if (Page.Content is GeneralSettings general)
+        {
+            general.RefreshNotifications();
+        }
+
+        // WinUI gives a new window's first control the focus as if by keyboard, with a focus ring; the page tab takes it
+        // as if clicked instead, as when Settings is opened with the mouse.
+        if (!_focusedOnce)
+        {
+            _focusedOnce = true;
+            DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => (Pages.SelectedItem as Control)?.Focus(FocusState.Pointer));
+        }
+    }
+
+    // The close button or Alt+F4: hidden, and kept for next time rather than closed, because WinUI never frees a window
+    // with its own title bar. It lets its page go, which stops a sound it's playing or a shortcut it's recording.
+    private void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        args.Cancel = true;
+        AppWindow.Hide();
+        Page.Content = null;
+        _focusedOnce = false;
+        ClosedWindows.LetGo();
+    }
+
+    // Only on Quit.
+    private void OnClosed(object sender, WindowEventArgs e)
+    {
+        _settings.PropertyChanged -= OnSettingChanged;
+        _messages.Dispose();
+        Page.Content = null;
+    }
+
+    private void OnPageSelected(SelectorBar sender, SelectorBarSelectionChangedEventArgs args) =>
+        ShowPage(sender.Items.IndexOf(sender.SelectedItem));
+
+    private void ShowPage(int index)
+    {
+        Page.Content = index switch
         {
             0 => new GeneralSettings(_timer, _settings, _hotKey),
             1 => new TimerSettings(_timer, _settings),

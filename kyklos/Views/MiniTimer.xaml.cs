@@ -42,11 +42,8 @@ public sealed partial class MiniTimer : Window
         _view = new MiniTimerView(timer);
         Content = _view;
 
-        var presenter = OverlappedPresenter.Create();
-        presenter.SetBorderAndTitleBar(true, false);
-        presenter.IsResizable = false;
-        presenter.IsMaximizable = false;
-        presenter.IsMinimizable = false;
+        // As the tray flyout's: a context menu's presenter, because a standard one without its title bar is never freed.
+        var presenter = OverlappedPresenter.CreateForContextMenu();
         presenter.IsAlwaysOnTop = true;
         AppWindow.SetPresenter(presenter);
         AppWindow.IsShownInSwitchers = false;
@@ -64,17 +61,9 @@ public sealed partial class MiniTimer : Window
         _view.CloseRequested += Close;
         _view.KeyboardNeeded += () => PInvoke.SetForegroundWindow(_window);
 
-        // Clicking another app takes the keyboard back. Like clicking away in the window, that keeps the minutes typed.
-        Activated += (_, e) =>
-        {
-            if (e.WindowActivationState == WindowActivationState.Deactivated)
-            {
-                _view.CommitEditing();
-            }
-        };
-
+        Activated += OnActivated;
         _settings.PropertyChanged += OnSettingChanged;
-        Closed += (_, _) => _settings.PropertyChanged -= OnSettingChanged;
+        Closed += OnClosed;
     }
 
     /// <summary>A double-click, for the full window.</summary>
@@ -115,6 +104,24 @@ public sealed partial class MiniTimer : Window
     }
 
     private void ApplyTheme() => _view.RequestedTheme = _settings.Appearance.ToElementTheme();
+
+    // Clicking another app takes the keyboard back. Like clicking away in the window, that keeps the minutes typed.
+    private void OnActivated(object sender, WindowActivatedEventArgs e)
+    {
+        if (e.WindowActivationState == WindowActivationState.Deactivated)
+        {
+            _view.CommitEditing();
+        }
+    }
+
+    // Lets go of the settings, and of its handlers on its own events: WinUI keeps those after a window has closed, and
+    // they refer to the window, so it would never be freed.
+    private void OnClosed(object sender, WindowEventArgs e)
+    {
+        _settings.PropertyChanged -= OnSettingChanged;
+        Activated -= OnActivated;
+        Closed -= OnClosed;
+    }
 
     // Moving: a press anywhere but the buttons (and the time while it can be typed) drags the window.
 

@@ -37,11 +37,10 @@ public sealed partial class TrayFlyout : Window
         Root.Children.Add(_view);
         Root.RequestedTheme = settings.Appearance.ToElementTheme();
 
-        var presenter = OverlappedPresenter.Create();
-        presenter.SetBorderAndTitleBar(true, false);
-        presenter.IsResizable = false;
-        presenter.IsMaximizable = false;
-        presenter.IsMinimizable = false;
+        // A context menu's presenter: a border and no title bar, and it can't be resized, minimised or maximised. (Told
+        // SetBorderAndTitleBar(true, false), a standard presenter looks the same, but WinUI then never frees the closed
+        // window.)
+        var presenter = OverlappedPresenter.CreateForContextMenu();
         presenter.IsAlwaysOnTop = true;
         AppWindow.SetPresenter(presenter);
         AppWindow.IsShownInSwitchers = false;
@@ -54,13 +53,8 @@ public sealed partial class TrayFlyout : Window
         }
 
         // Light dismiss: clicking anywhere else closes it.
-        Activated += (_, e) =>
-        {
-            if (e.WindowActivationState == WindowActivationState.Deactivated)
-            {
-                Close();
-            }
-        };
+        Activated += OnActivated;
+        Closed += OnClosed;
 
         // Measured before it's first laid out, the size is only an estimate; the first layout corrects it while the
         // flyout is still fading in.
@@ -138,6 +132,22 @@ public sealed partial class TrayFlyout : Window
         }
 
         WindowChrome.MoveClient(AppWindow, new PointInt32(x, y));
+    }
+
+    private void OnActivated(object sender, WindowActivatedEventArgs e)
+    {
+        if (e.WindowActivationState == WindowActivationState.Deactivated)
+        {
+            Close();
+        }
+    }
+
+    // WinUI keeps a window's handlers on its own events after it has closed, and these refer to the window, so it would
+    // never be freed. Each of kyklos's windows lets go of its own when it closes.
+    private void OnClosed(object sender, WindowEventArgs e)
+    {
+        Activated -= OnActivated;
+        Closed -= OnClosed;
     }
 
     private void OnRootKeyDown(object sender, KeyRoutedEventArgs e)

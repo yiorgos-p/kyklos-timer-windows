@@ -18,14 +18,20 @@ public sealed partial class MainWindow : Window
 {
     private const double ContentWidth = 360;
 
+    private static readonly uint TaskbarButtonCreated = PInvoke.RegisterWindowMessage("TaskbarButtonCreated");
+
     private readonly TimerViewModel _timer;
     private readonly Settings _settings;
     private readonly TimerView _view;
     private readonly OverlappedPresenter _presenter;
     private readonly WindowMessages _messages;
+    private readonly WindowMessages _taskbarButton;
     private readonly TaskbarProgress _progress;
     private bool _focusedOnce;
     private bool _progressPending;
+
+    /// <summary>Whether it's following the timer: always, except while hidden.</summary>
+    private bool _following = true;
 
     public MainWindow(TimerViewModel timer, Settings settings)
     {
@@ -44,6 +50,18 @@ public sealed partial class MainWindow : Window
         var window = Win32Interop.GetWindowFromWindowId(AppWindow.Id);
         _messages = WindowChrome.RefuseMaximize(window);
         _progress = new TaskbarProgress(window);
+
+        // Progress only takes on a taskbar button that exists, and Explorer makes a new one each time the window is
+        // shown, and after Explorer restarts.
+        _taskbarButton = new WindowMessages(window, (message, _, _) =>
+        {
+            if (message == TaskbarButtonCreated)
+            {
+                UpdateProgress();
+            }
+
+            return false;
+        });
 
         // The content runs under the title bar, so Mica covers the window edge to edge, as the Mac window is one glass
         // surface.
@@ -64,6 +82,7 @@ public sealed partial class MainWindow : Window
             }
         };
         AppTitleBar.PinToggled += pinned => _settings.KeepWindowOnTop = pinned;
+        AppWindow.Closing += OnClosing;
         Activated += OnActivated;
         Closed += OnClosed;
     }
@@ -73,9 +92,16 @@ public sealed partial class MainWindow : Window
     /// <summary>On screen and not minimised.</summary>
     public bool IsShowing => AppWindow.IsVisible && _presenter.State != OverlappedPresenterState.Minimized;
 
-    /// <summary>Brings the window back up, out of the taskbar if it was minimised.</summary>
+    /// <summary>Brings the window back up, out of the taskbar if it was minimised, or back from being hidden.</summary>
     public void BringToFront()
     {
+        if (!_following)
+        {
+            _following = true;
+            _timer.PropertyChanged += OnTimerChanged;
+            _view.Resume();
+        }
+
         if (_presenter.State == OverlappedPresenterState.Minimized)
         {
             _presenter.Restore();
@@ -85,19 +111,25 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Gives way to the tray flyout, so there's one timer on screen: hidden with Windows' own animation, then let go of,
-    /// so it doesn't sit in memory. Opening it again builds a new one where this one was.
+    /// Out of sight, with Windows' own animation: when the tray flyout or the mini timer takes over (one timer on screen),
+    /// and for the close button, as kyklos goes on in the tray. It's kept for next time rather than closed, because WinUI
+    /// never frees a window with its own title bar; meanwhile it doesn't follow the timer.
     /// </summary>
-    public void FadeOutAndClose()
+    public void Hide()
     {
+        if (!_following)
+        {
+            return;
+        }
+
+        _following = false;
         SavePosition();
         AppWindow.Hide();
+        _timer.PropertyChanged -= OnTimerChanged;
+        _view.Suspend();
 
-        var close = DispatcherQueue.CreateTimer();
-        close.Interval = TimeSpan.FromMilliseconds(200);
-        close.IsRepeating = false;
-        close.Tick += (_, _) => Close();
-        close.Start();
+        // Shown again, it puts the focus on the dial again, wherever it was left.
+        _focusedOnce = false;
     }
 
     private double Scale => PInvoke.GetDpiForWindow(new HWND(Win32Interop.GetWindowFromWindowId(AppWindow.Id))) / 96.0;
@@ -128,7 +160,14 @@ public sealed partial class MainWindow : Window
         AppWindow.Move(new PointInt32(area.X + (area.Width - size.Width) / 2, area.Y + (area.Height - size.Height) / 2));
     }
 
-    private void SavePosition() => _settings.MainWindowPos = new WindowPosition(AppWindow.Position.X, AppWindow.Position.Y);
+    // A minimised window sits far off screen, which is no place to come back to.
+    private void SavePosition()
+    {
+        if (_presenter.State != OverlappedPresenterState.Minimized)
+        {
+            _settings.MainWindowPos = new WindowPosition(AppWindow.Position.X, AppWindow.Position.Y);
+        }
+    }
 
     private void OnSettingChanged(object? sender, PropertyChangedEventArgs e) => ApplySettings();
 
@@ -162,6 +201,13 @@ public sealed partial class MainWindow : Window
     /// <summary>The session's progress on the taskbar button, so the time shows even with the window minimised.</summary>
     private void UpdateProgress() => _progress.Show(_settings.ShowInTaskbar ? _timer : null);
 
+    // The close button, Alt+F4 or the taskbar's "Close window": the window goes, and kyklos goes on in the tray.
+    private void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        args.Cancel = true;
+        Hide();
+    }
+
     private void OnActivated(object sender, WindowActivatedEventArgs args)
     {
         if (args.WindowActivationState != WindowActivationState.Deactivated && !_focusedOnce)
@@ -173,11 +219,13 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    // Only on Quit.
     private void OnClosed(object sender, WindowEventArgs args)
     {
         _settings.PropertyChanged -= OnSettingChanged;
         _timer.PropertyChanged -= OnTimerChanged;
         SavePosition();
         _messages.Dispose();
+        _taskbarButton.Dispose();
     }
 }
