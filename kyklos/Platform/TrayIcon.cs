@@ -22,10 +22,14 @@ internal sealed class TrayIcon : IDisposable
 
     private readonly SystemWindow _window;
     private readonly uint _taskbarCreated = PInvoke.RegisterWindowMessage("TaskbarCreated");
+    private readonly int _iconSize = TrayArt.IconSize();
     private (TrayTone Tone, double Fraction) _shown = (TrayTone.Glyph, 0);
     private string _tooltip = "kyklos";
     private HICON _icon;
-    private string? _iconShows;
+    private (TrayTone Tone, int Step, bool Light)? _iconShows;
+
+    /// <summary>Read again when Windows says its colours changed, rather than every second.</summary>
+    private bool _lightTaskbar = TrayArt.TaskbarIsLight();
 
     public TrayIcon(SystemWindow window)
     {
@@ -82,38 +86,38 @@ internal sealed class TrayIcon : IDisposable
 
     private void Notify(NOTIFY_ICON_MESSAGE message)
     {
-        if (message != NOTIFY_ICON_MESSAGE.NIM_DELETE)
+        var data = Data();
+        data.uFlags = NOTIFY_ICON_DATA_FLAGS.NIF_MESSAGE | NOTIFY_ICON_DATA_FLAGS.NIF_TIP | NOTIFY_ICON_DATA_FLAGS.NIF_SHOWTIP;
+        data.uCallbackMessage = CallbackMessage;
+        data.szTip = _tooltip;
+
+        // The tooltip's time changes every second, the picture only a few times a session: it goes to Explorer only then,
+        // and whenever the icon is added afresh.
+        if (message != NOTIFY_ICON_MESSAGE.NIM_DELETE && (RedrawIfChanged() || message == NOTIFY_ICON_MESSAGE.NIM_ADD))
         {
-            RedrawIfChanged();
+            data.uFlags |= NOTIFY_ICON_DATA_FLAGS.NIF_ICON;
+            data.hIcon = _icon;
         }
 
-        var data = Data();
-        data.uFlags = NOTIFY_ICON_DATA_FLAGS.NIF_MESSAGE | NOTIFY_ICON_DATA_FLAGS.NIF_ICON
-            | NOTIFY_ICON_DATA_FLAGS.NIF_TIP | NOTIFY_ICON_DATA_FLAGS.NIF_SHOWTIP;
-        data.uCallbackMessage = CallbackMessage;
-        data.hIcon = _icon;
-        data.szTip = _tooltip;
         PInvoke.Shell_NotifyIcon(message, data);
     }
 
-    /// <summary>The icon is only drawn again when it would look different.</summary>
-    private void RedrawIfChanged()
+    /// <summary>The icon is only drawn again when it would look different. Returns whether it was.</summary>
+    private bool RedrawIfChanged()
     {
-        var light = TrayArt.TaskbarIsLight();
-        var size = TrayArt.IconSize();
-        var shows = $"{_shown.Tone} {TrayIndicator.Step(_shown.Fraction)} {light} {size}";
-
+        var shows = (_shown.Tone, TrayIndicator.Step(_shown.Fraction), _lightTaskbar);
         if (shows == _iconShows)
         {
-            return;
+            return false;
         }
 
         var previous = _icon;
         _icon = _shown.Tone == TrayTone.Glyph
-            ? TrayArt.Glyph(light, size)
-            : TrayArt.Ring(_shown.Tone, _shown.Fraction, light, size);
+            ? TrayArt.Glyph(_lightTaskbar, _iconSize)
+            : TrayArt.Ring(_shown.Tone, _shown.Fraction, _lightTaskbar, _iconSize);
         _iconShows = shows;
         PInvoke.DestroyIcon(previous);
+        return true;
     }
 
     private NOTIFYICONDATAW Data() => new()
@@ -135,6 +139,7 @@ internal sealed class TrayIcon : IDisposable
         // The taskbar may have switched between light and dark.
         if (message == PInvoke.WM_SETTINGCHANGE && lParam != 0 && Marshal.PtrToStringUni(lParam) == "ImmersiveColorSet")
         {
+            _lightTaskbar = TrayArt.TaskbarIsLight();
             Notify(NOTIFY_ICON_MESSAGE.NIM_MODIFY);
             return;
         }
