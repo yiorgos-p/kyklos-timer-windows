@@ -1,7 +1,15 @@
 # Third-party notices
 
-kyklos is licensed under the GNU General Public License v3.0 (see LICENSE). It's built on, and its release zips carry,
-the components below, each under its own licence.
+kyklos is licensed under the GNU General Public License v3.0 (see LICENSE), with this additional permission:
+
+> Additional permission under GNU GPL version 3 section 7
+>
+> If you modify this Program, or any covered work, by linking or combining it with the Windows App SDK or the Windows
+> SDK for .NET (or a modified version of those libraries), containing parts covered by the terms of the Microsoft
+> Software License Terms for those libraries, the licensors of this Program grant you additional permission to convey
+> the resulting work.
+
+It's built on, and its release zips carry, the components below, each under its own licence.
 
 | Component | What kyklos uses it for | Licence |
 |---|---|---|

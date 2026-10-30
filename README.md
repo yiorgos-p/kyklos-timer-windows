@@ -99,5 +99,16 @@ I made kyklos for my own wandering mind, and it's free and will stay free. If it
 
 ## License
 
-kyklos is licensed under the GNU General Public License v3.0. Its alarm sounds are kyklos's own, synthesized from sine
-waves. The components it's built on, and their licences, are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+kyklos is licensed under the GNU General Public License v3.0, with the additional permission below. The Microsoft
+libraries it runs on, WinUI 3 (the Windows App SDK) and the Windows SDK for .NET, come with kyklos rather than with
+Windows, under Microsoft's own terms, and the permission lets kyklos be shared together with them.
+
+> Additional permission under GNU GPL version 3 section 7
+>
+> If you modify this Program, or any covered work, by linking or combining it with the Windows App SDK or the Windows
+> SDK for .NET (or a modified version of those libraries), containing parts covered by the terms of the Microsoft
+> Software License Terms for those libraries, the licensors of this Program grant you additional permission to convey
+> the resulting work.
+
+Its alarm sounds are kyklos's own, synthesized from sine waves. The components it's built on, and their licences, are
+listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
