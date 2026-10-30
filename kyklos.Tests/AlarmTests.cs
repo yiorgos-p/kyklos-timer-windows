@@ -150,6 +150,18 @@ public class AlarmTests
         Assert.Equal(AlarmSounds.UnreadableMessage, message);
     }
 
+    [Fact]
+    public async Task AFileWithNoPathCantBePlayed()
+    {
+        using var test = new TestTimer();
+
+        // What the file picker gives for a sound on a phone, which isn't in any folder.
+        var message = await test.Timer.SetCustomAlarmAsync("");
+
+        Assert.Equal(AlarmSounds.UnreadableMessage, message);
+        Assert.Null(test.Settings.CustomAlarmFile);
+    }
+
     /// <summary>Writes a stand-in sound file that the fake player says lasts this long (or can't play, for null).</summary>
     private static string WriteSound(TestTimer test, string name, double? seconds)
     {

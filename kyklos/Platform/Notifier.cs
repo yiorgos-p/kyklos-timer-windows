@@ -11,6 +11,12 @@ public sealed class Notifier : INotifier
     /// <summary>The same tag each time, so a new notification replaces the previous one.</summary>
     private const string Tag = "timer-finished";
 
+    /// <summary>
+    /// Windows refuses a notification bigger than 5 KB, and a task can be any length; a notification shows a line or two
+    /// of it anyway. Each line is kept to this many UTF-16 units.
+    /// </summary>
+    private const int LineLength = 400;
+
     private readonly bool _registered;
 
     /// <summary>Registers with Windows; clicking a notification then calls <paramref name="clicked"/> on a background thread.</summary>
@@ -38,15 +44,22 @@ public sealed class Notifier : INotifier
             return;
         }
 
-        var notification = new AppNotificationBuilder()
-            .AddText(title)
-            .AddText(body)
-            .MuteAudio()
-            .BuildNotification();
-        notification.Tag = Tag;
-        notification.Group = Tag;
+        try
+        {
+            var notification = new AppNotificationBuilder()
+                .AddText(Utf16Limit.Fit(title, LineLength))
+                .AddText(Utf16Limit.Fit(body, LineLength))
+                .MuteAudio()
+                .BuildNotification();
+            notification.Tag = Tag;
+            notification.Group = Tag;
 
-        AppNotificationManager.Default.Show(notification);
+            AppNotificationManager.Default.Show(notification);
+        }
+        catch (Exception e) when (e is COMException or ArgumentException)
+        {
+            // Posted at time's up, with the alarm about to ring: a notification Windows won't take mustn't stop that.
+        }
     }
 
     /// <summary>On quit, so a click on a notification left on screen launches kyklos again.</summary>

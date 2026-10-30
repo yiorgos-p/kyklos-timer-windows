@@ -228,6 +228,12 @@ public sealed partial class GeneralSettings : UserControl
 
     private async void ChooseSound()
     {
+        // Settings may have closed, and let this page go, since the list asked for the picker.
+        if (XamlRoot is not { } root)
+        {
+            return;
+        }
+
         var picker = new FileOpenPicker
         {
             SuggestedStartLocation = PickerLocationId.MusicLibrary,
@@ -238,7 +244,7 @@ public sealed partial class GeneralSettings : UserControl
             picker.FileTypeFilter.Add(type);
         }
 
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, Win32Interop.GetWindowFromWindowId(XamlRoot.ContentIslandEnvironment.AppWindowId));
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, Win32Interop.GetWindowFromWindowId(root.ContentIslandEnvironment.AppWindowId));
 
         if (await picker.PickSingleFileAsync() is not { } file)
         {

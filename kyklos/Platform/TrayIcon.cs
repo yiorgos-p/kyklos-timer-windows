@@ -55,14 +55,11 @@ internal sealed class TrayIcon : IDisposable
         }
     }
 
-    /// <summary>
-    /// The ring for this tone and fraction, and the tooltip: "kyklos", then on a second line the time and task, as the
-    /// Mac shows in its menu bar.
-    /// </summary>
+    /// <summary>The ring for this tone and fraction, and the tooltip with the time and task.</summary>
     public void Show(TrayTone tone, double fraction, string title)
     {
         _shown = (tone, fraction);
-        _tooltip = "kyklos\n" + title;
+        _tooltip = TrayIndicator.Tooltip(title);
         Notify(NOTIFY_ICON_MESSAGE.NIM_MODIFY);
     }
 

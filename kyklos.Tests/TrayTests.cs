@@ -55,4 +55,37 @@ public class TrayTests
     [InlineData(0.004, 0)]
     public void TheIconChangesInSixtyFourSteps(double fraction, int step) =>
         Assert.Equal(step, TrayIndicator.Step(fraction));
+
+    [Fact]
+    public void TheTooltipHasTheTimeAndTaskUnderTheName()
+    {
+        using var test = new TestTimer();
+        test.Timer.CurrentTask = "Writing the report";
+        test.Timer.StartTimer();
+
+        Assert.Equal("kyklos\n25:00 · Writing the report", TrayIndicator.Tooltip(test.Timer.TrayTitle));
+    }
+
+    [Fact]
+    public void ATooltipTooLongForWindowsIsCutAtAWholeCharacter()
+    {
+        // A family emoji is one character but 11 UTF-16 units, so 24 of them fit the task's limit and not Windows'.
+        const string family = "👨‍👩‍👧‍👦";
+        using var test = new TestTimer();
+        test.Timer.CurrentTask = string.Concat(Enumerable.Repeat(family, 30));
+        test.Timer.StartTimer();
+
+        var tooltip = TrayIndicator.Tooltip(test.Timer.TrayTitle);
+
+        Assert.True(tooltip.Length <= TrayIndicator.TooltipLength);
+        Assert.StartsWith("kyklos\n25:00 · " + family, tooltip);
+        Assert.EndsWith(family + "…", tooltip);
+    }
+
+    [Theory]
+    [InlineData("Short enough", 12, "Short enough")]
+    [InlineData("Too long by far", 8, "Too lon…")]
+    [InlineData("Café au lait", 5, "Caf…")] // the é is an e and an accent, kept together
+    public void TextIsCutToFitAWindowsLimit(string text, int units, string fitted) =>
+        Assert.Equal(fitted, Utf16Limit.Fit(text, units));
 }

@@ -27,4 +27,13 @@ public static class TrayIndicator
 
     /// <summary>The icon is only redrawn when this changes: at tray size, 64 steps round the circle is finer than the eye sees.</summary>
     public static int Step(double fraction) => (int)Math.Round(fraction * 64);
+
+    /// <summary>Windows keeps 128 UTF-16 units of a tray icon's tooltip, the end marker among them.</summary>
+    public const int TooltipLength = 127;
+
+    /// <summary>
+    /// The icon's tooltip: "kyklos", then on a second line the time and task, as the Mac shows them in its menu bar. The
+    /// task is already shortened to 24 characters, but those can still come to more than Windows keeps.
+    /// </summary>
+    public static string Tooltip(string title) => Utf16Limit.Fit("kyklos\n" + title, TooltipLength);
 }

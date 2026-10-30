@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Kyklos.Engine;
 using Microsoft.UI.Dispatching;
 using Windows.Media.Core;
@@ -12,6 +13,7 @@ namespace Kyklos.Platform;
 public sealed class AlarmPlayer(DispatcherQueue queue) : IAlarmPlayer
 {
     private MediaPlayer? _player;
+    private MediaSource? _source;
 
     public event Action? Ended;
 
@@ -29,6 +31,10 @@ public sealed class AlarmPlayer(DispatcherQueue queue) : IAlarmPlayer
             player.Pause();
             player.Dispose();
         }
+
+        // The sound goes too: it holds its file open, and a custom sound can't be replaced while it's open.
+        _source?.Dispose();
+        _source = null;
     }
 
     public async Task<TimeSpan?> MeasureAsync(string file)
@@ -55,11 +61,24 @@ public sealed class AlarmPlayer(DispatcherQueue queue) : IAlarmPlayer
             return;
         }
 
-        var player = new MediaPlayer
+        MediaPlayer player;
+        try
         {
-            AudioCategory = MediaPlayerAudioCategory.Alerts,
-            Source = MediaSource.CreateFromUri(new Uri(files[index])),
-        };
+            _source = MediaSource.CreateFromUri(new Uri(files[index]));
+            player = new MediaPlayer
+            {
+                AudioCategory = MediaPlayerAudioCategory.Alerts,
+                Source = _source,
+            };
+        }
+        catch (Exception e) when (e is COMException or UriFormatException)
+        {
+            // Windows' N editions come without media playback until the Media Feature Pack is added: no sound then, but
+            // time's up still goes on.
+            Stop();
+            PlayFrom(files, index + 1);
+            return;
+        }
 
         // Keep the alarm out of the media controls in Windows' volume flyout.
         player.CommandManager.IsEnabled = false;

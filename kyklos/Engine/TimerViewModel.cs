@@ -542,8 +542,9 @@ public sealed class TimerViewModel : INotifyPropertyChanged
         {
             size = new FileInfo(file).Length;
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
+            // A file the picker found somewhere other than a folder, such as on a phone, has no path at all.
             return AlarmSounds.UnreadableMessage;
         }
 
