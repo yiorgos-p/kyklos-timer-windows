@@ -174,7 +174,14 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void OnSettingChanged(object? sender, PropertyChangedEventArgs e) => ApplySettings();
+    // Only the settings it shows: others change often (the task typed is saved as it's typed), even while it's hidden.
+    private void OnSettingChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(Settings.Appearance) or nameof(Settings.KeepWindowOnTop) or nameof(Settings.ShowInTaskbar))
+        {
+            ApplySettings();
+        }
+    }
 
     private void ApplySettings()
     {

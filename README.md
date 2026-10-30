@@ -60,7 +60,8 @@ kyklos needs Windows 11. It's made and tested on Windows 11 on an x64 PC; report
 2. `kyklos.exe` is the whole app, so it can live anywhere: move it to a folder of your choice and run it. The first time,
    it takes a moment longer while it unpacks itself into your temp folder (and clears away an earlier version's copy).
 3. Windows will say "Windows protected your PC", because the app isn't signed (that takes a paid certificate). Click
-   **More info**, then **Run anyway**.
+   **More info**, then **Run anyway**. (On a PC with Smart App Control turned on, Windows may block it outright, with no
+   Run anyway; Windows Security → App & browser control shows whether it's on.)
 
 You only need to do this once. To find kyklos again, right-click `kyklos.exe` and choose Pin to Start, or turn on Start
 with Windows in its settings.
