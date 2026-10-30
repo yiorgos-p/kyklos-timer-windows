@@ -42,6 +42,6 @@
         <HyperlinkButton
             HorizontalAlignment="Center"
             Content="kyklos for Mac"
-            NavigateUri="https://github.com/yiorgos-p/kyklos-timer" />
+            NavigateUri="https://github.com/yiorgos-p/kyklos-timer-mac" />
     </StackPanel>
 </UserControl>

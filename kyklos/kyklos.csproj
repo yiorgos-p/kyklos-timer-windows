@@ -52,6 +52,8 @@
     <!-- Trimming turns off .NET's own COM support, which the taskbar progress (ITaskbarList3) goes through. -->
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <DebugType>none</DebugType>
+    <!-- Otherwise the trimmer gives each library it rewrites a symbol path naming the folder kyklos was built in. -->
+    <TrimmerRemoveSymbols>true</TrimmerRemoveSymbols>
     <!-- Compiled ahead of time rather than as it starts. -->
     <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
