@@ -99,8 +99,16 @@ public sealed partial class TimerView : UserControl
     /// <summary>The same, with the focus ring, when the flyout was opened from the keyboard: the ring shows where keys go.</summary>
     public void FocusDialByKeyboard() => Dial.Focus(FocusState.Keyboard);
 
-    /// <summary>Stops following the timer while the window it's in is hidden, so a hidden window costs nothing.</summary>
-    public void Suspend() => StopFollowing();
+    /// <summary>
+    /// Stops following the timer while the window it's in is hidden, so a hidden window costs nothing. Minutes being
+    /// typed are kept, as clicking away keeps them; left to be committed when the window is next shown, they would undo
+    /// whatever length was set meanwhile.
+    /// </summary>
+    public void Suspend()
+    {
+        Dial.CommitEditing();
+        StopFollowing();
+    }
 
     /// <summary>Shown again, it catches up and follows the timer again.</summary>
     public void Resume()

@@ -30,6 +30,7 @@
             <toolkit:SettingsCard.Description>
                 <TextBlock
                     x:Name="AlarmMessage"
+                    AutomationProperties.LiveSetting="Assertive"
                     Foreground="{ThemeResource OvertimeBrush}"
                     TextWrapping="WrapWholeWords"
                     Visibility="Collapsed" />
@@ -39,6 +40,8 @@
                     x:Name="AlarmSound"
                     MinWidth="160"
                     AutomationProperties.Name="Alarm sound"
+                    DropDownClosed="OnAlarmListClosed"
+                    DropDownOpened="OnAlarmListOpened"
                     SelectionChanged="OnAlarmSoundSelected" />
                 <Button
                     x:Name="PlayButton"
@@ -103,6 +106,7 @@
                     <TextBlock Text="Start, pause, or resume from any app. Click the shortcut to change it." TextWrapping="WrapWholeWords" />
                     <TextBlock
                         x:Name="ShortcutMessage"
+                        AutomationProperties.LiveSetting="Assertive"
                         Foreground="{ThemeResource OvertimeBrush}"
                         TextWrapping="WrapWholeWords"
                         Visibility="Collapsed" />

@@ -83,6 +83,13 @@ public sealed partial class SettingsWindow : Window
             _presenter.Restore();
         }
 
+        // Back where there's no screen any more: in the middle of the main one again.
+        if (!WindowChrome.OnScreen(AppWindow.Position, AppWindow.Size))
+        {
+            _placed = false;
+            FitToContent();
+        }
+
         Activate();
     }
 

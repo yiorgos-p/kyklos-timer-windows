@@ -38,6 +38,13 @@ internal static class WindowChrome
     });
 
     /// <summary>
+    /// Whether a window there would show on any screen. A hidden window isn't moved when its screen goes (a laptop
+    /// leaving its dock, say), so one shown again can need placing anew.
+    /// </summary>
+    public static bool OnScreen(PointInt32 position, SizeInt32 size) =>
+        DisplayArea.GetFromRect(new RectInt32(position.X, position.Y, size.Width, size.Height), DisplayAreaFallback.None) is not null;
+
+    /// <summary>
     /// Sizes a window's client area, in pixels. AppWindow.ResizeClient adds a standard title bar's height, but kyklos's
     /// windows have none (the main window draws its own in the content; the flyout and mini timer hide it), so the
     /// window is sized from its actual frame instead.

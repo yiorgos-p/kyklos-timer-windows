@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Kyklos.Engine;
 using Kyklos.Platform;
 using Microsoft.UI;
@@ -75,6 +76,7 @@ internal sealed class TrayMenu
         // After Quit kyklos, the menu closes with its window already gone.
         _menu.Closed += (_, _) =>
         {
+            _timer.PropertyChanged -= OnTimerChanged;
             if (!_closed)
             {
                 _host.AppWindow.Hide();
@@ -86,6 +88,8 @@ internal sealed class TrayMenu
         // on to its first item the way it got it, so it's given it as if from the pointer; the arrow keys still work.
         _menu.Opened += (_, _) =>
         {
+            // Time can run out while it's open, and Pause then has to become the next phase's button.
+            _timer.PropertyChanged += OnTimerChanged;
             if (!_byKeyboard)
             {
                 (FocusManager.GetFocusedElement(_root.XamlRoot) as MenuFlyoutPresenter)?.Focus(FocusState.Pointer);
@@ -101,15 +105,7 @@ internal sealed class TrayMenu
         _byKeyboard = byKeyboard;
         _root.RequestedTheme = theme.ToElementTheme();
         _host.AppWindow.MoveAndResize(new RectInt32(point.X, point.Y, 1, 1));
-
-        // The first two items follow the timer.
-        var finished = _timer.State == TimerState.Finished;
-        _main.Text = _timer.PrimaryActionTitle;
-        _main.Icon = finished
-            ? PhaseIcons.Create(_timer.NextPhase)
-            : new FontIcon { Glyph = _timer.State == TimerState.Running ? Glyphs.PauseBold : Glyphs.PlaySolid };
-        _reset.Text = _timer.ResetActionTitle;
-        _reset.Icon = new FontIcon { Glyph = finished ? Glyphs.StopSolid : Glyphs.Undo };
+        ShowTimerItems();
 
         _host.Activate();
         if (_root.IsLoaded)
@@ -127,4 +123,25 @@ internal sealed class TrayMenu
     }
 
     private void Open() => _menu.ShowAt(_root, new FlyoutShowOptions { Position = new Point(0, 0) });
+
+    /// <summary>The first two items follow the timer.</summary>
+    private void ShowTimerItems()
+    {
+        var finished = _timer.State == TimerState.Finished;
+        _main.Text = _timer.PrimaryActionTitle;
+        _main.Icon = finished
+            ? PhaseIcons.Create(_timer.NextPhase)
+            : new FontIcon { Glyph = _timer.State == TimerState.Running ? Glyphs.PauseBold : Glyphs.PlaySolid };
+        _reset.Text = _timer.ResetActionTitle;
+        _reset.Icon = new FontIcon { Glyph = finished ? Glyphs.StopSolid : Glyphs.Undo };
+    }
+
+    // Each tick says the time changed; only a new state or phase changes the items.
+    private void OnTimerChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(TimerViewModel.State) or nameof(TimerViewModel.Phase))
+        {
+            ShowTimerItems();
+        }
+    }
 }

@@ -22,6 +22,7 @@ public static class AlarmSounds
     public const string TooLargeMessage = "That file is over 20 MB. Pick a smaller one.";
     public const string UnreadableMessage = "That file can't be played. Try an MP3, M4A or WAV file.";
     public const string TooLongMessage = "That sound is longer than 30 seconds. Pick a shorter one.";
+    public const string NoPickerMessage = "Windows couldn't open the file picker. Try again.";
 
     /// <summary>A built-in sound's file, in the Sounds folder next to kyklos.exe.</summary>
     public static string BuiltInFile(string name) => Path.Combine(AppContext.BaseDirectory, "Sounds", name + ".wav");

@@ -108,6 +108,11 @@ public sealed partial class MainWindow : Window
             _presenter.Restore();
         }
 
+        if (!WindowChrome.OnScreen(AppWindow.Position, AppWindow.Size))
+        {
+            PlaceWindow();
+        }
+
         Activate();
     }
 
@@ -150,8 +155,7 @@ public sealed partial class MainWindow : Window
     {
         var size = AppWindow.Size;
 
-        if (_settings.MainWindowPos is { } saved
-            && DisplayArea.GetFromRect(new RectInt32(saved.X, saved.Y, size.Width, size.Height), DisplayAreaFallback.None) is not null)
+        if (_settings.MainWindowPos is { } saved && WindowChrome.OnScreen(new PointInt32(saved.X, saved.Y), size))
         {
             AppWindow.Move(new PointInt32(saved.X, saved.Y));
             return;

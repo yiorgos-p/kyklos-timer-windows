@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Security;
 using Kyklos.Engine;
 using Kyklos.Platform;
-using Microsoft.UI;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -10,7 +9,7 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.Windows.AppNotifications;
-using Windows.Storage.Pickers;
+using Microsoft.Windows.Storage.Pickers;
 using Windows.System;
 using Windows.UI.Core;
 
@@ -33,6 +32,10 @@ public sealed partial class GeneralSettings : UserControl
 
     /// <summary>The sound was played from here, so leaving Settings stops it (a ringing alarm rings on).</summary>
     private bool _previewing;
+
+    // Whether the sound list is open. Closed, the arrow keys step through the sounds, and stepping onto "Choose file…"
+    // mustn't open a picker: it does when it's picked from the open list.
+    private bool _listOpen;
 
     private bool _recording;
 
@@ -102,7 +105,7 @@ public sealed partial class GeneralSettings : UserControl
         StartWithWindowsSwitch.IsOn = StartWithWindows.IsOn;
         ShortcutEnabled.IsOn = _settings.GlobalShortcutEnabled;
         ShortcutButton.IsEnabled = _settings.GlobalShortcutEnabled;
-        ShortcutButton.Content = _recording ? "Type shortcut…" : _settings.GlobalShortcut.Describe(KeyNames.OnLayout);
+        ShowShortcut(_recording ? "Type shortcut…" : _settings.GlobalShortcut.Describe(KeyNames.OnLayout));
         PlayButton.Content = _timer.IsAlarmPlaying ? "Stop" : "Play";
         _updating = false;
     }
@@ -213,11 +216,16 @@ public sealed partial class GeneralSettings : UserControl
 
         if (choice == ChooseFile)
         {
-            // The sound in use stays chosen while the picker is open, which waits for the list to close.
+            // The sound in use stays chosen while the picker is open, which waits for the list to close. Stepped onto
+            // with the list closed, it's passed over.
             _updating = true;
             SelectCurrentSound();
             _updating = false;
-            DispatcherQueue.TryEnqueue(ChooseSound);
+            if (_listOpen)
+            {
+                DispatcherQueue.TryEnqueue(ChooseSound);
+            }
+
             return;
         }
 
@@ -225,6 +233,11 @@ public sealed partial class GeneralSettings : UserControl
         _settings.AlarmSound = choice;
         StartPreview();
     }
+
+    private void OnAlarmListOpened(object sender, object e) => _listOpen = true;
+
+    // Only once the list has made its choice, which can come just after it closes.
+    private void OnAlarmListClosed(object sender, object e) => DispatcherQueue.TryEnqueue(() => _listOpen = false);
 
     private async void ChooseSound()
     {
@@ -234,7 +247,8 @@ public sealed partial class GeneralSettings : UserControl
             return;
         }
 
-        var picker = new FileOpenPicker
+        // The Windows App SDK's picker, not the older Windows.Storage one, which fails in an app run as administrator.
+        var picker = new FileOpenPicker(root.ContentIslandEnvironment.AppWindowId)
         {
             SuggestedStartLocation = PickerLocationId.MusicLibrary,
             CommitButtonText = "Use sound",
@@ -244,9 +258,19 @@ public sealed partial class GeneralSettings : UserControl
             picker.FileTypeFilter.Add(type);
         }
 
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, Win32Interop.GetWindowFromWindowId(root.ContentIslandEnvironment.AppWindowId));
+        PickFileResult? file;
+        try
+        {
+            file = await picker.PickSingleFileAsync();
+        }
+        catch (Exception)
+        {
+            // Whatever Windows' error, it comes as one exception or another; the timer carries on all the same.
+            ShowAlarmMessage(AlarmSounds.NoPickerMessage);
+            return;
+        }
 
-        if (await picker.PickSingleFileAsync() is not { } file)
+        if (file is null)
         {
             return;
         }
@@ -311,7 +335,7 @@ public sealed partial class GeneralSettings : UserControl
         ShowShortcutMessage(null);
         _recording = true;
         _hotKey.Suspended = true;
-        ShortcutButton.Content = "Type shortcut…";
+        ShowShortcut("Type shortcut…");
     }
 
     private void OnShortcutLostFocus(object sender, RoutedEventArgs e) => StopRecording();
@@ -326,7 +350,14 @@ public sealed partial class GeneralSettings : UserControl
         // Registers the shortcut again, new or old, so Works says whether Windows took it.
         _recording = false;
         _hotKey.Suspended = false;
-        ShortcutButton.Content = _settings.GlobalShortcut.Describe(KeyNames.OnLayout);
+        ShowShortcut(_settings.GlobalShortcut.Describe(KeyNames.OnLayout));
+    }
+
+    // Read out as what it is, not only as the keys.
+    private void ShowShortcut(string text)
+    {
+        ShortcutButton.Content = text;
+        AutomationProperties.SetName(ShortcutButton, "Shortcut: " + text);
     }
 
     private void OnShortcutKeyDown(object sender, KeyRoutedEventArgs e)
@@ -405,5 +436,11 @@ public sealed partial class GeneralSettings : UserControl
     {
         line.Text = message ?? "";
         line.Visibility = message is null ? Visibility.Collapsed : Visibility.Visible;
+
+        // Screen readers say it as it appears: it's what went wrong with what was just done.
+        if (message is not null)
+        {
+            FrameworkElementAutomationPeer.CreatePeerForElement(line).RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+        }
     }
 }

@@ -61,12 +61,13 @@ public sealed partial class WindowTitleBar : UserControl
         window.SetTitleBar(this);
         _window = window;
 
-        SizeChanged += (_, _) =>
+        SizeChanged += (_, _) => UpdateOpen();
+
+        // On a screen with another scale, the pin is somewhere else in screen pixels though its size here is the same.
+        Loaded += (_, _) =>
         {
-            if (_window is { } open)
-            {
-                Update(open.AppWindow);
-            }
+            XamlRoot.Changed -= OnXamlRootChanged;
+            XamlRoot.Changed += OnXamlRootChanged;
         };
         window.Activated += OnWindowActivated;
         window.Closed += OnWindowClosed;
@@ -98,6 +99,16 @@ public sealed partial class WindowTitleBar : UserControl
         }
     }
 
+    private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs e) => UpdateOpen();
+
+    private void UpdateOpen()
+    {
+        if (_window is { } open)
+        {
+            Update(open.AppWindow);
+        }
+    }
+
     private void Update(AppWindow window)
     {
         if (XamlRoot is null)
@@ -109,6 +120,9 @@ public sealed partial class WindowTitleBar : UserControl
         LeftInsetColumn.Width = new GridLength(window.TitleBar.LeftInset / scale);
         RightInsetColumn.Width = new GridLength(window.TitleBar.RightInset / scale);
         ShowIcon(scale);
+
+        // The new insets move the pin; it's measured where they've put it.
+        UpdateLayout();
 
         RectInt32[] passthrough = [];
         if (ShowsPin)

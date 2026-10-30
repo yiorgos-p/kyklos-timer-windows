@@ -32,6 +32,7 @@
         <Image
             x:Name="Icon"
             Grid.Column="1"
+            AutomationProperties.AccessibilityView="Raw"
             Width="16"
             Height="16"
             Margin="16,0,0,0"

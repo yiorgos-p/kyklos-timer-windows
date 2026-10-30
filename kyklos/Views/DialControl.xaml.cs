@@ -111,6 +111,7 @@ public sealed partial class DialControl : UserControl
         if (_editing && !CanType)
         {
             EndEditing();
+            Focus(FocusState.Pointer);
         }
     }
 
@@ -339,18 +340,22 @@ public sealed partial class DialControl : UserControl
         {
             case VirtualKey.Enter:
                 CommitEditing();
+                Focus(FocusState.Pointer);
                 e.Handled = true;
                 break;
             case VirtualKey.Escape:
                 EndEditing();
+                Focus(FocusState.Pointer);
                 e.Handled = true;
                 break;
         }
     }
 
+    // The focus has gone where it was taken (the task field, say), so it's left there.
     private void OnMinutesLostFocus(object sender, RoutedEventArgs e) => CommitEditing();
 
-    private void CommitEditing()
+    /// <summary>Keeps what's typed in the minutes, as clicking away does.</summary>
+    internal void CommitEditing()
     {
         if (!_editing)
         {
@@ -370,7 +375,6 @@ public sealed partial class DialControl : UserControl
         _editing = false;
         Editor.Visibility = Visibility.Collapsed;
         Readout.Visibility = Visibility.Visible;
-        Focus(FocusState.Pointer);
     }
 
     internal bool IsEditing => _editing;
