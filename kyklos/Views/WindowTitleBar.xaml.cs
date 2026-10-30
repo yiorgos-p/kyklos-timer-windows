@@ -1,3 +1,4 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -18,6 +19,9 @@ public sealed partial class WindowTitleBar : UserControl
 
     /// <summary>The window it's the title bar of, until that closes.</summary>
     private Window? _window;
+
+    // The display scale the title bar was last laid out for.
+    private double _scale;
 
     public WindowTitleBar()
     {
@@ -99,7 +103,14 @@ public sealed partial class WindowTitleBar : UserControl
         }
     }
 
-    private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs e) => UpdateOpen();
+    // It changes as the window is shown, hidden and sized too; only a new scale moves the pin.
+    private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs e)
+    {
+        if (sender.RasterizationScale != _scale)
+        {
+            UpdateOpen();
+        }
+    }
 
     private void UpdateOpen()
     {
@@ -116,14 +127,24 @@ public sealed partial class WindowTitleBar : UserControl
             return;
         }
 
-        var scale = XamlRoot.RasterizationScale;
+        var scale = _scale = XamlRoot.RasterizationScale;
         LeftInsetColumn.Width = new GridLength(window.TitleBar.LeftInset / scale);
         RightInsetColumn.Width = new GridLength(window.TitleBar.RightInset / scale);
         ShowIcon(scale);
 
-        // The new insets move the pin; it's measured where they've put it.
-        UpdateLayout();
+        // The new insets move the pin: it's measured once they have, after the layout they cause.
+        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+        {
+            if (_window is not null && XamlRoot is not null)
+            {
+                LetPinThrough(window, scale);
+            }
+        });
+    }
 
+    /// <summary>The pin takes clicks, rather than them dragging the window as the rest of the title bar does.</summary>
+    private void LetPinThrough(AppWindow window, double scale)
+    {
         RectInt32[] passthrough = [];
         if (ShowsPin)
         {
