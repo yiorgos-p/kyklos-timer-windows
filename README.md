@@ -46,8 +46,8 @@ It's the same app as [kyklos for Mac](https://github.com/yiorgos-p/kyklos-timer)
 - A window that can stay on top of other windows
 - Light and dark, following Windows or set by hand, in Windows 11's Mica, with Focus in your accent colour
 - Start with Windows, and kyklos can stay out of the taskbar and live in the tray
-- A native Windows 11 app, built with WinUI 3 and light on resources: about 45 MB of memory in Task Manager and well
-  under 1% of the CPU
+- A native Windows 11 app, built with WinUI 3, in a single portable kyklos.exe and light on resources: about 45 MB of
+  memory in Task Manager and well under 1% of the CPU
 - No ads and no data collection; kyklos never connects to the internet
 
 ## Download
