@@ -75,12 +75,27 @@
 
   <!-- kyklos is in English only, so WinUI's own words (a text box's Cut, Copy and Paste, what a screen reader calls a
        scroll bar) stay in English too, as AppKit's do on the Mac for an app in one language. That leaves out the 85
-       other languages WinUI comes with; on a PC set to one of them, WinUI falls back to English. -->
+       other languages of WinUI's .mui files; on a PC set to one of them, those fall back to English. (The few control
+       names WinUI keeps in its resources.pri, which is merged into kyklos's, still come in every language.) -->
   <Target Name="LeaveOutOtherLanguages" AfterTargets="ComputeResolvedFilesToPublishList">
     <!-- The folders are named in either case (en-us), and MSBuild compares strings without it. -->
     <ItemGroup>
       <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
                              Condition="'%(Extension)' == '.mui' and '$([System.IO.Path]::GetDirectoryName(%(RelativePath)))' != 'en-US'" />
+    </ItemGroup>
+  </Target>
+
+  <!-- More that kyklos never uses, and would only unpack: the web view, the helper that restarts an app, the
+       bootstrapper a self-contained app does without, Visual Studio's designer support, background tasks, and the
+       controls' resources, which are merged into kyklos's own resources.pri along with its compiled XAML. The XAML and
+       the other source files that get copied along go too. -->
+  <PropertyGroup>
+    <UnusedFiles>;Microsoft.Web.WebView2.Core.dll;WebView2Loader.dll;RestartAgent.exe;Microsoft.WindowsAppRuntime.Bootstrap.dll;Microsoft.UI.Designer.dll;Microsoft.Windows.ApplicationModel.Background.UniversalBGTask.dll;Microsoft.UI.Xaml.Controls.pri;NativeMethods.txt;app.manifest;</UnusedFiles>
+  </PropertyGroup>
+  <Target Name="LeaveOutUnusedParts" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="$(UnusedFiles.Contains(';%(Filename)%(Extension);')) or '%(Extension)' == '.xaml'" />
     </ItemGroup>
   </Target>
 
