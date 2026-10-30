@@ -24,16 +24,18 @@
     <FileVersion>1.0.0.1</FileVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
 
-    <!-- A plain folder rather than an MSIX package, carrying its own .NET and Windows App SDK, so the zip from GitHub
-         runs on any Windows 11 PC. -->
+    <!-- Not an MSIX package: it carries its own .NET and Windows App SDK, so the zip from GitHub runs on any Windows 11
+         PC. -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
-    <!-- Builds kyklos.pri, which holds the windows' compiled layouts; without it, `dotnet publish` leaves them out and the
-         first window can't open. -->
+    <!-- Builds the resource index, which holds the windows' compiled layouts; without it, `dotnet publish` leaves them
+         out and the first window can't open. Named resources.pri rather than after the exe, so a kyklos.exe saved as
+         "kyklos (1).exe" still finds it. -->
     <EnableMsixTooling>true</EnableMsixTooling>
+    <ProjectPriFileName>resources.pri</ProjectPriFileName>
   </PropertyGroup>
 
   <!-- A release is a single kyklos.exe that runs from anywhere, like a portable app: .NET and the Windows App SDK are
