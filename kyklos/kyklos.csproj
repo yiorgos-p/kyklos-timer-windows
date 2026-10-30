@@ -17,6 +17,9 @@
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\kyklos.ico</ApplicationIcon>
+    <!-- kyklos is in English only, so .NET's translated resources (satellite assemblies) are English only too. None of its
+         packages ships any today; WinUI's own translations are Windows .mui files, left out below. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 
     <!-- About shows "Version 1.0 (Build 1)", as the Mac's does: the version, and the build in the file version's last
          place. -->
