@@ -111,6 +111,12 @@ public partial class App : Application
         Show(instance.GetActivatedEventArgs().Kind == ExtendedActivationKind.AppNotification
             ? TimerSurface.MainWindow
             : MinimalModeRules.AtLaunch(_settings.MinimalMode));
+
+        // With this version up and running, earlier versions' unpacked copies go, out of the way of the UI.
+        if (Environment.ProcessPath is { } exe)
+        {
+            _ = Task.Run(() => UnpackedCopies.DeleteOld(AppContext.BaseDirectory, exe));
+        }
     }
 
     private void Show(TimerSurface? surface)

@@ -58,7 +58,7 @@ kyklos needs Windows 11. It's made and tested on Windows 11 on an x64 PC; report
    your PC has an Arm processor (Settings → System → About says which, under System type). Right-click the zip and
    choose Extract All.
 2. `kyklos.exe` is the whole app, so it can live anywhere: move it to a folder of your choice and run it. The first time,
-   it takes a moment longer while it unpacks itself into your temp folder.
+   it takes a moment longer while it unpacks itself into your temp folder (and clears away an earlier version's copy).
 3. Windows will say "Windows protected your PC", because the app isn't signed (that takes a paid certificate). Click
    **More info**, then **Run anyway**.
 
