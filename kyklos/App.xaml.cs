@@ -39,6 +39,7 @@ public partial class App : Application
     private TrayFlyout? _flyout;
     private MiniTimer? _miniTimer;
     private SettingsWindow? _settingsWindow;
+    private TrayMenu? _trayMenu;
     private long _flyoutClosedAt;
     private bool _updatePending;
 
@@ -210,8 +211,11 @@ public partial class App : Application
         flyout.Open(_tray.Bounds, click, byKeyboard);
     }
 
-    private void ShowTrayMenu(PointInt32 point, bool byKeyboard) =>
-        TrayMenu.Show(point, byKeyboard, _timer, _settings.Appearance, ShowMainWindow, ShowSettings, Quit);
+    private void ShowTrayMenu(PointInt32 point, bool byKeyboard)
+    {
+        _trayMenu ??= new TrayMenu(_timer, ShowMainWindow, ShowSettings, Quit);
+        _trayMenu.Show(point, byKeyboard, _settings.Appearance);
+    }
 
     private void ShowSettings()
     {
@@ -281,6 +285,7 @@ public partial class App : Application
         CloseMiniTimer();
         _settingsWindow?.Close();
         _mainWindow?.Close();
+        _trayMenu?.Close();
         Exit();
     }
 }
