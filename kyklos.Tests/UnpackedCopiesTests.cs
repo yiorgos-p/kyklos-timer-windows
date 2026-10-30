@@ -23,6 +23,8 @@ public sealed class UnpackedCopiesTests : IDisposable
     [Theory]
     // A Debug or folder build runs where its exe is: there's no unpacked copy, and its neighbours are other builds.
     [InlineData(@"C:\src\kyklos\bin\Debug\net10.0-windows10.0.26100.0\win-x64\", @"C:\src\kyklos\bin\Debug\net10.0-windows10.0.26100.0\win-x64\kyklos.exe")]
+    // A folder build that happens to sit where unpacked copies go: still where its exe is.
+    [InlineData(@"C:\Tools\.net\kyklos\1.0\", @"C:\Tools\.net\kyklos\1.0\kyklos.exe")]
     // Unpacked somewhere other than %TEMP%\.net (DOTNET_BUNDLE_EXTRACT_BASE_DIR), or under another app's name.
     [InlineData(@"D:\Unpacked\kyklos\aBc123\", @"D:\Apps\kyklos.exe")]
     [InlineData(@"C:\Temp\.net\something-else\aBc123\", @"D:\Apps\kyklos.exe")]
@@ -59,6 +61,65 @@ public sealed class UnpackedCopiesTests : IDisposable
         Assert.True(Directory.Exists(fresh));
         Assert.True(Directory.Exists(neighbour));
     }
+
+    [Fact]
+    public void LeavesCopiesInUseAndOtherAppsFolders()
+    {
+        var home = Path.Combine(_temp, ".net", "kyklos");
+        var running = Copy(home, "running", DateTime.UtcNow.AddDays(-1));
+        var inUse = Copy(home, "stillRunningElsewhere", DateTime.UtcNow.AddDays(-30));
+        var anotherApp = Path.Combine(home, "anotherAppsCopy");
+        Directory.CreateDirectory(anotherApp);
+        File.WriteAllText(Path.Combine(anotherApp, "other.dll"), "");
+        Directory.SetLastWriteTimeUtc(anotherApp, DateTime.UtcNow.AddDays(-30));
+
+        var exe = @"D:\Apps\kyklos.exe";
+        var kept = UnpackedCopies.Keep(inUse + Path.DirectorySeparatorChar, exe);
+        try
+        {
+            UnpackedCopies.DeleteOld(running + Path.DirectorySeparatorChar, exe);
+        }
+        finally
+        {
+            foreach (var handle in kept)
+            {
+                handle.Dispose();
+            }
+        }
+
+        Assert.True(File.Exists(Path.Combine(inUse, "kyklos.dll")));
+        Assert.True(Directory.Exists(anotherApp));
+    }
+
+    [Fact]
+    public void TheRunningCopysFilesCanBeReadButNotDeleted()
+    {
+        var copy = Copy(Path.Combine(_temp, ".net", "kyklos"), "running", DateTime.UtcNow);
+        var sound = Path.Combine(copy, "Sounds", "Bowl.wav");
+        Directory.CreateDirectory(Path.GetDirectoryName(sound)!);
+        File.WriteAllText(sound, "sound");
+
+        var kept = UnpackedCopies.Keep(copy + Path.DirectorySeparatorChar, @"D:\Apps\kyklos.exe");
+        try
+        {
+            Assert.Equal(2, kept.Count);
+            Assert.Equal("sound", File.ReadAllText(sound));
+            Assert.ThrowsAny<IOException>(() => File.Delete(sound));
+        }
+        finally
+        {
+            foreach (var handle in kept)
+            {
+                handle.Dispose();
+            }
+        }
+
+        File.Delete(sound);
+    }
+
+    [Fact]
+    public void ADebugBuildKeepsNothingOpen() =>
+        Assert.Empty(UnpackedCopies.Keep(_temp, Path.Combine(_temp, "kyklos.exe")));
 
     [Fact]
     public void ADebugBuildDeletesNothing()

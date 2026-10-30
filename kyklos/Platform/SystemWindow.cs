@@ -12,7 +12,11 @@ namespace Kyklos.Platform;
 /// </summary>
 internal sealed class SystemWindow : IDisposable
 {
-    private const string ClassName = "kyklos.system";
+    /// <summary>The window's class, by which a second launch of kyklos finds the one running.</summary>
+    public const string ClassName = "kyklos.system";
+
+    /// <summary>Posted by a second launch of kyklos: show the main window.</summary>
+    public static readonly uint ShowMessage = PInvoke.RegisterWindowMessage("kyklos.show");
 
     // Kept alive here: Windows holds only a pointer to it.
     private readonly WNDPROC _procedure;
@@ -37,6 +41,9 @@ internal sealed class SystemWindow : IDisposable
                 WINDOW_EX_STYLE.WS_EX_TOOLWINDOW, name, null, WINDOW_STYLE.WS_POPUP, 0, 0, 0, 0,
                 HWND.Null, HMENU.Null, (HINSTANCE)instance.DangerousGetHandle(), null);
         }
+
+        // Run as administrator, kyklos would otherwise never hear from a launch that isn't.
+        PInvoke.ChangeWindowMessageFilterEx(Handle, ShowMessage, WINDOW_MESSAGE_FILTER_ACTION.MSGFLT_ALLOW, null);
     }
 
     /// <summary>Every message the window receives: the message, its wParam and its lParam.</summary>

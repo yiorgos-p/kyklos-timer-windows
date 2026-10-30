@@ -35,6 +35,9 @@ public partial class App : Application
     private GlobalHotKey _hotKey = null!;
     private TimeJumps _timeJumps = null!;
     private NewDay _newDay = null!;
+
+    // The running copy's files, held open until kyklos ends (see UnpackedCopies.Keep).
+    private IReadOnlyList<Microsoft.Win32.SafeHandles.SafeFileHandle> _keptFiles = [];
     private MainWindow? _mainWindow;
     private TrayFlyout? _flyout;
     private MiniTimer? _miniTimer;
@@ -92,6 +95,13 @@ public partial class App : Application
                 _timer.SaveTask();
             }
 
+            // Launched again while running, from Start or a taskbar pin: the new copy hands over, and this one shows its
+            // window.
+            if (message == SystemWindow.ShowMessage)
+            {
+                queue.TryEnqueue(ShowMainWindow);
+            }
+
             // Windows writes times another way now (12 or 24 hours), which .NET keeps until told: "ends 14:35" follows.
             if (message == PInvoke.WM_SETTINGCHANGE && lParam != 0 && Marshal.PtrToStringUni(lParam) == "intl")
             {
@@ -103,19 +113,20 @@ public partial class App : Application
         _settings.PropertyChanged += OnSettingChanged;
         UpdateTray();
 
-        // Launched again while running, from Start or a taskbar pin: the new copy hands over, and this one shows its window.
-        var instance = AppInstance.GetCurrent();
-        instance.Activated += (_, _) => queue.TryEnqueue(ShowMainWindow);
-
         // A "time's up" notification left from before opens the window, as it does while kyklos runs.
-        Show(instance.GetActivatedEventArgs().Kind == ExtendedActivationKind.AppNotification
+        Show(AppInstance.GetCurrent().GetActivatedEventArgs().Kind == ExtendedActivationKind.AppNotification
             ? TimerSurface.MainWindow
             : MinimalModeRules.AtLaunch(_settings.MinimalMode));
 
-        // With this version up and running, earlier versions' unpacked copies go, out of the way of the UI.
+        // With this version up and running, its own unpacked copy is kept whole and earlier versions' go, out of the
+        // way of the UI.
         if (Environment.ProcessPath is { } exe)
         {
-            _ = Task.Run(() => UnpackedCopies.DeleteOld(AppContext.BaseDirectory, exe));
+            _ = Task.Run(() =>
+            {
+                _keptFiles = UnpackedCopies.Keep(AppContext.BaseDirectory, exe);
+                UnpackedCopies.DeleteOld(AppContext.BaseDirectory, exe);
+            });
         }
     }
 

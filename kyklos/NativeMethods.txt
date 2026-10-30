@@ -1,6 +1,6 @@
 AllowSetForegroundWindow
+ChangeWindowMessageFilterEx
 ClientToScreen
-CoWaitForMultipleObjects
 CreateBitmap
 CreateDIBSection
 CreateIconIndirect
@@ -12,6 +12,7 @@ DestroyIcon
 DestroyWindow
 DwmSetWindowAttribute
 DWM_WINDOW_CORNER_PREFERENCE
+FindWindow
 GetCurrentProcess
 GetCursorPos
 GetDoubleClickTime
@@ -22,6 +23,7 @@ GetModuleHandle
 GetSystemMetrics
 GetSystemMetricsForDpi
 GetWindowLong
+GetWindowThreadProcessId
 ITaskbarList3
 LoadImage
 MapVirtualKey
@@ -45,7 +47,6 @@ UnregisterHotKey
 UnregisterPowerSettingNotification
 EVENT_SYSTEM_FOREGROUND
 GUID_CONSOLE_DISPLAY_STATE
-INFINITE
 PBT_APMRESUMEAUTOMATIC
 PBT_APMRESUMESUSPEND
 PBT_POWERSETTINGCHANGE

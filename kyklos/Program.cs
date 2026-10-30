@@ -1,32 +1,39 @@
+using Kyklos.Platform;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
-using Microsoft.Windows.AppLifecycle;
 using Windows.Win32;
-using Windows.Win32.Foundation;
 
 namespace Kyklos;
 
 /// <summary>
-/// Starts kyklos, once. Launched again while it runs (from Start, or a pinned taskbar icon), it hands the launch to the
-/// copy that's running, which shows its window, and leaves.
+/// Starts kyklos, once. Launched again while it runs (from Start, a pinned taskbar icon, or a copy of kyklos.exe saved
+/// somewhere else), it asks the copy that's running to show its window, and leaves.
 /// </summary>
 public static class Program
 {
-    /// <summary>A handover that hasn't finished by then never will: the copy that's running is quitting, or stuck.</summary>
-    private const uint HandOverTimeout = 10_000;
+    /// <summary>
+    /// Held as long as kyklos runs, in this sign-in session. It's named for kyklos rather than for where its exe is,
+    /// as the Windows App SDK's own single-instance key is: with that, a copy started from another folder ran alongside.
+    /// </summary>
+    private const string RunningName = @"Local\io.github.yiorgos-p.Kyklos";
+
+    /// <summary>How long a second launch looks for the running copy's window: that copy may still be starting.</summary>
+    private static readonly TimeSpan HandOverTimeout = TimeSpan.FromSeconds(5);
+
+    // Kept for the life of the process: let go, it would say kyklos had ended.
+    private static Mutex? _running;
 
     [STAThread]
     public static void Main()
     {
-        WinRT.ComWrappersSupport.InitializeComWrappers();
-
-        var main = AppInstance.FindOrRegisterForKey("kyklos");
-        if (!main.IsCurrent)
+        _running = new Mutex(false, RunningName, out var first);
+        if (!first)
         {
-            HandOver(main);
+            HandOver();
             return;
         }
 
+        WinRT.ComWrappersSupport.InitializeComWrappers();
         Application.Start(_ =>
         {
             SynchronizationContext.SetSynchronizationContext(new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread()));
@@ -34,32 +41,25 @@ public static class Program
         });
     }
 
-    private static void HandOver(AppInstance running)
+    private static unsafe void HandOver()
     {
-        // This launch came from the user, so it may bring a window to the front; the running copy shows its own.
-        PInvoke.AllowSetForegroundWindow(running.ProcessId);
-
-        // The handover has to finish before this copy ends. It runs on another thread while this one waits with COM
-        // messages flowing, as the Windows App SDK asks of a single-threaded apartment. (The event isn't disposed: after a
-        // wait that gave up, the handover can still set it.)
-        var arguments = AppInstance.GetCurrent().GetActivatedEventArgs();
-        var done = new ManualResetEvent(false);
-        Task.Run(() =>
+        var giveUp = DateTime.UtcNow + HandOverTimeout;
+        while (DateTime.UtcNow < giveUp)
         {
-            try
+            var window = PInvoke.FindWindow(SystemWindow.ClassName, null);
+            if (!window.IsNull)
             {
-                running.RedirectActivationToAsync(arguments).AsTask().Wait();
+                // This launch came from the user, so it may bring a window to the front; the running copy shows its own.
+                uint process;
+                PInvoke.GetWindowThreadProcessId(window, &process);
+                PInvoke.AllowSetForegroundWindow(process);
+                PInvoke.PostMessage(window, SystemWindow.ShowMessage, 0, 0);
+                return;
             }
-            catch (Exception)
-            {
-                // The running copy went away meanwhile. There's no window to show, and this copy leaves all the same;
-                // launched again, it starts as the only one.
-            }
-            finally
-            {
-                done.Set();
-            }
-        });
-        PInvoke.CoWaitForMultipleObjects(0, HandOverTimeout, [new HANDLE(done.SafeWaitHandle.DangerousGetHandle())], out _);
+
+            // Not there yet, or any more: the running copy is starting, or quitting. If it was quitting, a launch after
+            // it has gone starts as the only one.
+            Thread.Sleep(100);
+        }
     }
 }
