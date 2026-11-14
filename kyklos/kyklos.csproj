@@ -23,8 +23,8 @@
 
     <!-- About shows "Version 1.0 (Build 1)", as the Mac's does: the version, and the build in the file version's last
          place. -->
-    <Version>1.1</Version>
-    <FileVersion>1.1.0.1</FileVersion>
+    <Version>1.2</Version>
+    <FileVersion>1.2.0.1</FileVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
 
     <!-- Not an MSIX package: it carries its own .NET and Windows App SDK, so the zip from GitHub runs on any Windows 11
