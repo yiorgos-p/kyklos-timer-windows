@@ -37,7 +37,7 @@
             HorizontalAlignment="Center"
             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
             Style="{StaticResource CaptionTextBlockStyle}"
-            Text="Open source under the GNU GPLv3" />
+            Text="Source available under the PolyForm Shield License" />
 
         <HyperlinkButton
             HorizontalAlignment="Center"
